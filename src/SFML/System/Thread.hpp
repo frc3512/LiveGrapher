@@ -39,7 +39,6 @@
 #include "NonCopyable.hpp"
 #include <windows.h>
 #include <cstdlib>
-#include <iostream> // TODO Remove me
 
 
 namespace sf

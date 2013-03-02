@@ -12,15 +12,28 @@
 #include <fstream>
 #include <sys/time.h>
 
-#include "SFML/Network/SocketSelector.hpp"
-#include "SFML/Network/TcpSocket.hpp"
-#include "SFML/Network/IpAddress.hpp"
-#include "SFML/Network/Packet.hpp"
-#include "SFML/System/Lock.hpp"
+#include "../SFML/Network/SocketSelector.hpp"
+#include "../SFML/Network/TcpSocket.hpp"
+#include "../SFML/Network/IpAddress.hpp"
+#include "../SFML/Network/Packet.hpp"
+#include "../SFML/System/Lock.hpp"
 
 #include <wingdi.h>
 
 std::map<HWND , Graph*> Graph::m_map;
+
+/* Graph Packet Structure
+ *
+ * char* graphName (16 bytes)
+ * float32 x
+ * float32 y
+ * ... <other graphs>
+ */
+typedef struct packet_t {
+    char graphName[16];
+    float x;
+    float y;
+} packet_t;
 
 DataSet::DataSet( std::list<std::pair<float , float>> n_data , COLORREF n_color ) {
     data = n_data;
@@ -84,6 +97,9 @@ Graph::Graph( HWND parentWindow , const Vector2i& position , const Vector2i& siz
     m_xMax = size.X;
     m_yMax = size.Y;
 
+    m_xScale = 100.f;
+    m_yScale = 200.f;
+
     m_xHistory = size.X;
 
     // Add window to global map
@@ -116,8 +132,6 @@ void Graph::redraw() {
 }
 
 void Graph::draw( PAINTSTRUCT* ps ) {
-    //m_drawMutex.lock();
-
     // Create DC to which to draw
     HDC hdc = ps->hdc;
 
@@ -150,24 +164,23 @@ void Graph::draw( PAINTSTRUCT* ps ) {
             );
 
     std::pair<float , float> gridPoint;
+    gridPoint.first = getXScale();
+    gridPoint.second = getYScale();
+    gridPoint = transformToGraph( gridPoint );
     gridPoint.first = 20.f;
-    //gridPoint = transformToGraph( gridPoint );
+    gridPoint.second = 20.f;
 
     // Draw horizontal grid lines
     for ( int i = 0 , y = 0 ; y < clientRect.bottom - clientRect.top ; i++ ) {
-        y = clientRect.top - getOutlineThickness() + i * gridPoint.first - m_yMin % static_cast<int>(gridPoint.first);
+        y = clientRect.top - getOutlineThickness() + i * gridPoint.second + m_yMin % static_cast<int>(gridPoint.second);
+
         MoveToEx( bufferDC , clientRect.left , y , NULL );
         LineTo( bufferDC , clientRect.right , y );
     }
 
     // Draw vertical grid lines
-    std::pair<float , float> tempPoint;
-    tempPoint.second = 0;
     for ( int i = 0 , x = 0 ; x < clientRect.right - clientRect.left ; i++ ) {
-        tempPoint.first = clientRect.left - getOutlineThickness() + i * 20.f - m_xMin % 20;
-        tempPoint = transformToGraph(tempPoint);
-
-        x = clientRect.left - getOutlineThickness() + i * 20.f - m_xMin % 20;
+        x = clientRect.left - getOutlineThickness() + i * gridPoint.first + m_xMin % static_cast<int>(gridPoint.first);
 
         MoveToEx( bufferDC , x , clientRect.top , NULL );
         LineTo( bufferDC , x , clientRect.bottom );
@@ -179,45 +192,47 @@ void Graph::draw( PAINTSTRUCT* ps ) {
 
     // Loop over each data set
     for ( std::list<DataSet>::iterator set = m_dataSets.begin() ; set != m_dataSets.end() ; set++ ) {
-        // Switch current pen with one needed for current data set
-        HPEN linePen = CreatePen( PS_SOLID , 2 , set->color );
-        HPEN lastPen = (HPEN)SelectObject( bufferDC , linePen );
-        std::pair<float , float> tempPoint;
+        if ( set->data.size() > 0 ) {
+            // Switch current pen with one needed for current data set
+            HPEN linePen = CreatePen( PS_SOLID , 2 , set->color );
+            HPEN lastPen = (HPEN)SelectObject( bufferDC , linePen );
+            std::pair<float , float> tempPoint;
 
-        tempPoint = transformToGraph( *(set->startingPoint) );
+            tempPoint = transformToGraph( *(set->startingPoint) );
 
-        // While starting point isn't on screen anymore, advance to next point
-        while ( tempPoint.first < 0 && set->startingPoint != set->data.end() ) {
+            // While starting point isn't on screen anymore, advance to next point
+            while ( tempPoint.first < 0 && set->startingPoint != set->data.end() ) {
+                set->startingPoint++;
+
+                // Get new transformed starting point
+                tempPoint = transformToGraph( *(set->startingPoint) );
+            }
+
+            if ( set->startingPoint == set->data.end() && set->data.begin() != set->data.end() ) {
+                set->startingPoint--;
+            }
+
+            // Move starting point back to just off left of screen
+            if ( set->startingPoint != set->data.begin() ) {
+                set->startingPoint--;
+            }
+
+            // Move DC pen to starting point
+            tempPoint = transformToGraph(*(set->startingPoint));
+            MoveToEx( bufferDC , tempPoint.first , clientRect.bottom - tempPoint.second , NULL );
             set->startingPoint++;
 
-            // Get new transformed starting point
-            tempPoint = transformToGraph( *(set->startingPoint) );
+            for ( std::list<std::pair<float , float>>::iterator pt = set->startingPoint ; pt != set->data.end() ; pt++ ) {
+                // Normalize point before we draw it
+                tempPoint = transformToGraph(*pt);
+
+                LineTo( bufferDC , tempPoint.first , clientRect.bottom - tempPoint.second );
+            }
+
+            // Free line pen for this data set
+            SelectObject( bufferDC , lastPen );
+            DeleteObject( linePen );
         }
-
-        if ( set->startingPoint == set->data.end() && set->data.begin() != set->data.end() ) {
-            set->startingPoint--;
-        }
-
-        // Move starting point back to just off left of screen
-        if ( set->startingPoint != set->data.begin() ) {
-            set->startingPoint--;
-        }
-
-        // Move DC pen to starting point
-        tempPoint = transformToGraph(*(set->startingPoint));
-        MoveToEx( bufferDC , tempPoint.first , clientRect.bottom - tempPoint.second , NULL );
-        set->startingPoint++;
-
-        for ( std::list<std::pair<float , float>>::iterator pt = set->startingPoint ; pt != set->data.end() ; pt++ ) {
-            // Normalize point before we draw it
-            tempPoint = transformToGraph(*pt);
-
-            LineTo( bufferDC , tempPoint.first , clientRect.bottom - tempPoint.second );
-        }
-
-        // Free line pen for this data set
-        SelectObject( bufferDC , lastPen );
-        DeleteObject( linePen );
     }
 
     m_dataMutex.unlock();
@@ -240,8 +255,6 @@ void Graph::draw( PAINTSTRUCT* ps ) {
 
     // Free buffer DC
     DeleteDC( bufferDC );
-
-    //m_drawMutex.unlock();
 }
 
 void Graph::addData( unsigned int index , const std::pair<float , float>& data ) {
@@ -252,7 +265,13 @@ void Graph::addData( unsigned int index , const std::pair<float , float>& data )
         set++;
     }
 
+    bool noPoints = set->startingPoint == set->data.end();
+
     set->data.push_back( data );
+
+    if ( noPoints ) {
+        set->startingPoint = set->data.begin();
+    }
 
     m_dataMutex.unlock();
 }
@@ -304,7 +323,8 @@ COLORREF Graph::getGraphColor( unsigned int index ) {
 void Graph::createGraph( COLORREF color ) {
     m_dataMutex.lock();
 
-    std::list<std::pair<float , float>> data = { std::make_pair( 1.f , 1.f ) };
+    // TODO Make list with no points
+    std::list<std::pair<float , float>> data = { std::make_pair( 0.f , 0.f ) };
     m_dataSets.push_back( DataSet( data , color ) );
 
     m_dataMutex.unlock();
@@ -333,6 +353,18 @@ void Graph::setYMin( int yMin ) {
 void Graph::setYMax( int yMax ) {
     m_dataMutex.lock();
     m_yMax = yMax;
+    m_dataMutex.unlock();
+}
+
+void Graph::setXScale( int xScale ) {
+    m_dataMutex.lock();
+    m_xScale = xScale;
+    m_dataMutex.unlock();
+}
+
+void Graph::setYScale( int yScale ) {
+    m_dataMutex.lock();
+    m_yScale = yScale;
     m_dataMutex.unlock();
 }
 
@@ -415,6 +447,18 @@ int Graph::getYMax() {
     return m_yMax;
 }
 
+int Graph::getXScale() {
+    sf::Lock dataLock( m_dataMutex );
+
+    return m_xScale;
+}
+
+int Graph::getYScale() {
+    sf::Lock dataLock( m_dataMutex );
+
+    return m_yScale;
+}
+
 std::pair<float , float> Graph::transformToGraph( std::pair<float , float> point ) {
     RECT windowRect;
     GetClientRect( m_window , &windowRect );
@@ -449,20 +493,10 @@ LRESULT CALLBACK Graph::WindowProc( HWND handle , UINT message , WPARAM wParam ,
 void Graph::graphThreadFunc() {
     sf::SocketSelector threadSelector;
     sf::TcpSocket dataSocket;
-    unsigned short dataPort = 3512;
+    unsigned short dataPort = 3513;
     sf::IpAddress remoteIP( 127 , 0 , 0 , 1 );
+    //sf::IpAddress remoteIP( 10 , 35 , 12 , 2 );
     sf::Socket::Status status;
-
-    /* Graph Packet Structure
-     *
-     * std::string graphName
-     * float32 x
-     * float32 y
-     * ... <other graphs>
-     */
-    std::string graphName;
-    float x = 0;
-    float y = 0;
 
     while ( m_isRunning && status != sf::Socket::Done ) {
         status = dataSocket.connect( remoteIP , dataPort , sf::milliseconds( 1000 ) );
@@ -487,29 +521,36 @@ void Graph::graphThreadFunc() {
         createGraph( RGB( 0 , 120 , 0 ) );
         createGraph( RGB( 255 , 0 , 0 ) );
 
-        sf::Packet recvData;
+        packet_t recvData;
+        int tmp;
+        unsigned int sizeRecv = 0;
+        sf::Socket::Status status;
+
         while ( m_isRunning ) {
             if ( threadSelector.wait( sf::milliseconds( 100 ) ) ) {
                 if ( threadSelector.isReady( dataSocket ) ) {
-                    recvData.clear();
-                    dataSocket.receive( recvData );
+                    status = dataSocket.receive( &recvData , 24 , sizeRecv );
 
                     // Add all points sent to local graph
-                    while ( recvData ) {
-                        recvData >> graphName >> x >> y;
+                    if ( status == sf::Socket::Done ) {
+                        tmp = ntohl( *( (int*)&recvData.x ) );
+                        recvData.x = *( (float*)&tmp );
 
-                        if ( x > getXMax() ) {
-                            setXMin( x - getHistoryLength() );
-                            setXMax( x );
-                            setYMin( -1 );
-                            setYMax( 1 );
+                        tmp = ntohl( *( (int*)&recvData.y ) );
+                        recvData.y = *( (float*)&tmp );
+
+                        if ( recvData.x > getXMax() ) {
+                            setXMin( recvData.x - getHistoryLength() );
+                            setXMax( recvData.x );
                         }
 
-                        if ( graphName == "graph0" ) {
-                            addData( 0 , std::make_pair( x , y ) );
+                        std::cout << recvData.graphName << ": " << recvData.x << ", " << recvData.y << "\n";
+
+                        if ( std::strcmp( recvData.graphName , "PID0" ) == 0 ) {
+                            addData( 0 , std::make_pair( recvData.x , recvData.y ) );
                         }
-                        else if ( graphName == "graph1" ) {
-                            addData( 1 , std::make_pair( x , y ) );
+                        else if ( std::strcmp( recvData.graphName , "PID1" ) == 0 ) {
+                            addData( 1 , std::make_pair( recvData.x , recvData.y ) );
                         }
                     }
 

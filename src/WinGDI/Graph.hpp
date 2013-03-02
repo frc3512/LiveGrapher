@@ -13,8 +13,8 @@
 #include <map>
 #include <string>
 
-#include "SFML/System/Mutex.hpp"
-#include "SFML/System/Thread.hpp"
+#include "../SFML/System/Mutex.hpp"
+#include "../SFML/System/Thread.hpp"
 
 struct DataSet {
     DataSet( std::list<std::pair<float , float>> n_data , COLORREF n_color );
@@ -58,6 +58,12 @@ public:
     // Set yMax of plot
     void setYMax( int yMax );
 
+    // Set number of points between vertical grid line
+    void setXScale( int xScale );
+
+    // Set number of points between horizontal grid line
+    void setYScale( int yScale );
+
     // Set length of history
     void setHistoryLength( unsigned int length );
 
@@ -93,6 +99,12 @@ private:
     // Get yMax of plot
     int getYMax();
 
+    // Get xScale of plot
+    int getXScale();
+
+    // Get yScale of plot
+    int getYScale();
+
     void draw( PAINTSTRUCT* ps );
 
     HWND m_window;
@@ -107,11 +119,13 @@ private:
     int m_xMax;
     int m_yMax;
 
+    int m_xScale;
+    int m_yScale;
+
     // Tells how far back xMin is from xMax when xMax is shifted
     int m_xHistory;
 
     sf::Mutex m_dataMutex;
-    //sf::Mutex m_drawMutex;
 
     sf::Thread m_graphThread;
     volatile bool m_isRunning;

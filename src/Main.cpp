@@ -12,7 +12,6 @@
 #define _WIN32_IE 0x0600
 #include <commctrl.h>
 
-#include <iostream> // TODO Remove me
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
@@ -263,9 +262,9 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
         // Create PID loop graph
         gDrawables.push_back( new Graph( graphGroup , Vector2i( 9 , 23 ) , Vector2i( 450 , 350 ) ) );
         Graph* pidGraph = static_cast<Graph*>(gDrawables[0]);
-        pidGraph->setHistoryLength( 450 * 8 );
+        pidGraph->setHistoryLength( 450 * 10 );
         pidGraph->setYMin( 0 );
-        pidGraph->setYMax( 10000 );
+        pidGraph->setYMax( 5200 );
 
         HWND Pedit = CreateWindowEx( WS_EX_STATICEDGE,
                 "EDIT",

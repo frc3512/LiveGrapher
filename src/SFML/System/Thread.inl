@@ -81,8 +81,6 @@ Thread::Thread(F function, A argument) :
 m_thread      (NULL),
 m_entryPoint(new ThreadFunctorWithArg<F, A>(function, argument))
 {
-	std::cout << "wrong thread\n";
-	std::flush( std::cout );
 }
 
 
@@ -92,6 +90,4 @@ Thread::Thread(void(C::*function)(), C* object) :
 m_thread      (NULL),
 m_entryPoint(new ThreadMemberFunc<C>(function, object))
 {
-	std::cout << "thread created\n";
-	std::flush( std::cout );
 }
