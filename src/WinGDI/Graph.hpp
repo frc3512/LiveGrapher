@@ -16,6 +16,8 @@
 #include "../SFML/System/Mutex.hpp"
 #include "../SFML/System/Thread.hpp"
 
+typedef std::pair<float , float> Pair;
+
 struct DataSet {
     DataSet( std::list<std::pair<float , float>> n_data , COLORREF n_color );
 
@@ -39,6 +41,9 @@ public:
 
     // Remove oldest data point from graph at given index (pop front)
     void removeData( unsigned int index );
+
+    // Removes all previous data from all graphs
+    void clearAllData();
 
     // Set color of graph at given index
     void setGraphColor( unsigned int index , COLORREF color );

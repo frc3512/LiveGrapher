@@ -352,6 +352,23 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 reinterpret_cast<WPARAM>( GetStockObject( DEFAULT_GUI_FONT ) ),
                 MAKELPARAM( FALSE , 0 ) );
 
+        HWND clearButton = CreateWindowEx( 0,
+                "BUTTON",
+                "Clear Data",
+                WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
+                WindowVars::width - 2 * ( 9 + 100 ),
+                WindowVars::height - 9 - 27,
+                100,
+                27,
+                handle,
+                reinterpret_cast<HMENU>( IDM_CLEAR ),
+                gInstance,
+                NULL);
+
+        SendMessage( clearButton,
+                WM_SETFONT,
+                reinterpret_cast<WPARAM>( GetStockObject( DEFAULT_GUI_FONT ) ),
+                MAKELPARAM( FALSE , 0 ) );
 
         HWND saveButton = CreateWindowEx( 0,
                 "BUTTON",
@@ -384,16 +401,11 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 break;
             }
 
-            /*case IDC_SAVE_BUTTON: {
-                if ( static_cast<Graph*>(gDrawables[0])->saveToCSV( "dataSave.csv" ) ) {
-                    MessageBox( handle , "Data has been saved" , "Save To CSV" , MB_ICONINFORMATION | MB_OK );
-                }
-                else {
-                    MessageBox( handle , "Failed to save data" , "Save To CSV" , MB_ICONERROR | MB_OK );
-                }
+            case IDM_CLEAR: {
+                static_cast<Graph*>(gDrawables[0])->clearAllData();
 
                 break;
-            }*/
+            }
 
             case IDM_SAVE: {
                 if ( static_cast<Graph*>(gDrawables[0])->saveToCSV( "dataSave.csv" ) ) {

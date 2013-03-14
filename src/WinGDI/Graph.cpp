@@ -296,6 +296,19 @@ void Graph::removeData( unsigned int index ) {
     m_dataMutex.unlock();
 }
 
+void Graph::clearAllData() {
+    m_dataMutex.lock();
+
+    for ( std::list<DataSet>::iterator set = m_dataSets.begin() ; set != m_dataSets.end() ; set++ ) {
+        set->data.clear();
+
+        // Reset iterator to beginning since no other data can be pointed to
+        set->startingPoint = set->data.begin();
+    }
+
+    m_dataMutex.unlock();
+}
+
 void Graph::setGraphColor( unsigned int index , COLORREF color ) {
     m_dataMutex.lock();
 
@@ -381,23 +394,73 @@ unsigned int Graph::getHistoryLength() {
 }
 
 bool Graph::saveToCSV( const std::string& fileName ) {
-    std::ofstream saveFile( fileName , std::ios_base::trunc );
+    // There isn't any point in creating a file with no data in it
+    if ( m_dataSets.size() == 0 ) {
+        return false;
+    }
+
+    std::vector<std::list<std::pair<float , float>>::iterator> points( m_dataSets.size() );
+    std::vector<std::list<std::pair<float , float>>::iterator> ptEnds( m_dataSets.size() );
+
+    size_t i = 0;
+    for ( std::list<DataSet>::iterator sets = m_dataSets.begin() ; sets != m_dataSets.end() ; sets++ ) {
+        points[i] = sets->data.begin();
+        ptEnds[i] = sets->data.end();
+        i++;
+    }
+
+    /* ===== Create unique name for file ===== */
+    SYSTEMTIME currentTime;
+    ZeroMemory( &currentTime , sizeof(currentTime) );
+    GetSystemTime( &currentTime );
+
+    char buf[128];
+    snprintf( buf , 128 , "Graph-%u.%u-%u.%u.%u.csv" ,
+            currentTime.wMonth ,
+            currentTime.wDay ,
+            currentTime.wHour ,
+            currentTime.wMinute ,
+            currentTime.wSecond );
+    /* ======================================= */
+
+    std::ofstream saveFile( buf , std::ios_base::trunc );
 
     if ( saveFile.is_open() ) {
         m_dataMutex.lock();
 
-        unsigned int i = 0;
+        size_t setsOpen = points.size();
 
-        for ( std::list<DataSet>::iterator set = m_dataSets.begin() ; set != m_dataSets.end() ; set++ ) {
-            saveFile << "\"SET" << i << "\"\n";
+        // While there is still data in at least one DataSet to add to the file
+        while ( setsOpen > 0 ) {
+            setsOpen = points.size();
 
-            for ( std::list<std::pair<float , float>>::iterator pt = set->data.begin() ; pt != set->data.end() ; pt++ ) {
-                saveFile << pt->first << "," << pt->second << '\n';
+            for ( size_t j = 0 ; j < points.size() ; j++ ) {
+                // If there are still points in this DataSet to add
+                if ( points[j] != ptEnds[j] ) {
+                    saveFile << points[j]->first << "," << points[j]->second;
+
+                    // Increment to next point
+                    points[j]++;
+                }
+                else {
+                    // Add a filler comma
+                    saveFile << ",";
+                }
+
+                // If DataSet reached invalid point after incrementing
+                if ( points[j] == ptEnds[j] ) {
+                    setsOpen--;
+                }
+
+                // Only add another comma if there is more data to add
+                if ( j < points.size() - 1 ) {
+                    saveFile << ",";
+                }
             }
 
-            saveFile << '\n';
-
-            i++;
+            if ( setsOpen > 0 ) {
+                saveFile << '\n';
+            }
         }
 
         m_dataMutex.unlock();
@@ -494,9 +557,9 @@ void Graph::graphThreadFunc() {
     sf::SocketSelector threadSelector;
     sf::TcpSocket dataSocket;
     unsigned short dataPort = 3513;
-    sf::IpAddress remoteIP( 127 , 0 , 0 , 1 );
-    //sf::IpAddress remoteIP( 10 , 35 , 12 , 2 );
-    sf::Socket::Status status;
+    //sf::IpAddress remoteIP( 127 , 0 , 0 , 1 );
+    sf::IpAddress remoteIP( 10 , 35 , 12 , 2 );
+    sf::Socket::Status status = sf::Socket::Disconnected;
 
     while ( m_isRunning && status != sf::Socket::Done ) {
         status = dataSocket.connect( remoteIP , dataPort , sf::milliseconds( 1000 ) );

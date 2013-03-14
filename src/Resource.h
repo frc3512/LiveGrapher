@@ -18,8 +18,9 @@
 #define IDC_STATIC                -1
 
 #define IDM_CONNECT               301
-#define IDM_SAVE                  302
-#define IDM_EXIT                  303
-#define IDM_ABOUT                 304
+#define IDM_CLEAR                 302
+#define IDM_SAVE                  303
+#define IDM_EXIT                  304
+#define IDM_ABOUT                 305
 
 #endif // RESOURCE_H
