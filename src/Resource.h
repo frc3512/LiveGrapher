@@ -15,6 +15,7 @@
 #define IDC_IEDIT                 204
 #define IDC_DEDIT                 205
 #define IDC_FEDIT                 206
+#define IDC_MOTOREDIT             207
 #define IDC_STATIC                -1
 
 #define IDM_CONNECT               301

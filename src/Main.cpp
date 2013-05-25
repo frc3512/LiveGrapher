@@ -19,6 +19,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include "Resource.h"
 #include "WindowVars.hpp"
@@ -166,7 +167,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
     switch ( message ) {
     case WM_CREATE: {
         TCITEM tabInfo;
-        char* tempBuf = static_cast<char*>( std::malloc( 8 ) );
+        char* tempBuf = static_cast<char*>( std::malloc( 16 ) );
         std::strcpy( tempBuf , "Graph" );
 
         HWND tabWindow = CreateWindowEx( 0,
@@ -228,14 +229,42 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
 
         gTabs.push_back( tab2 );
 
-        if ( TabCtrl_InsertItem( tabWindow , 0 , &tabInfo ) == -1 ) {
-            DestroyWindow( tabWindow );
-        }
-        else {
-            std::strcpy( tabInfo.pszText , "Options" );
-            if ( TabCtrl_InsertItem( tabWindow , 1 , &tabInfo ) == -1 ) {
-                DestroyWindow( tabWindow );
+        HWND tab3 = CreateWindowEx( 0,
+                "LiveStatic",
+                "",
+                WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE,
+                1,
+                21,
+                tabWinRect.right - 9 + 5,
+                tabWinRect.bottom - 9 - 14,
+                tabWindow,
+                reinterpret_cast<HMENU>( IDC_TABSTART + 2 ),
+                gInstance,
+                NULL);
+
+        gTabs.push_back( tab3 );
+
+        try {
+            if ( TabCtrl_InsertItem( tabWindow , 0 , &tabInfo ) == -1 ) {
+                throw -1;
             }
+
+            std::strcpy( tabInfo.pszText , "Motor Control" );
+            if ( TabCtrl_InsertItem( tabWindow , 1 , &tabInfo ) == -1 ) {
+                throw -1;
+            }
+
+            std::strcpy( tabInfo.pszText , "Options" );
+            if ( TabCtrl_InsertItem( tabWindow , 2 , &tabInfo ) == -1 ) {
+                throw -1;
+            }
+        }
+        catch( int e ) {
+            if ( e == -1 ) {
+                std::cout << "Tabs couldn't be created\n";
+            }
+
+            DestroyWindow( tabWindow );
         }
 
         std::free( tempBuf );
@@ -330,6 +359,23 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 (HINSTANCE)GetWindowLong( graphGroup , GWL_HINSTANCE ) , NULL );
 
         SendMessage( Fedit,
+                WM_SETFONT,
+                reinterpret_cast<WPARAM>( GetStockObject( DEFAULT_GUI_FONT ) ),
+                MAKELPARAM( FALSE , 0 ) );
+
+        HWND motorEdit = CreateWindowEx( WS_EX_STATICEDGE,
+                "EDIT",
+                "Motor Value",
+                WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER | ES_LEFT,
+                23,
+                23,
+                122,
+                20,
+                tab2,
+                reinterpret_cast<HMENU>( IDC_MOTOREDIT ),
+                (HINSTANCE)GetWindowLong( graphGroup , GWL_HINSTANCE ) , NULL );
+
+        SendMessage( motorEdit,
                 WM_SETFONT,
                 reinterpret_cast<WPARAM>( GetStockObject( DEFAULT_GUI_FONT ) ),
                 MAKELPARAM( FALSE , 0 ) );
