@@ -164,26 +164,29 @@ void Graph::draw( PAINTSTRUCT* ps ) {
             );
 
     std::pair<float , float> gridPoint;
-    gridPoint.first = getXScale();
-    gridPoint.second = getYScale();
-    gridPoint = transformToGraph( gridPoint );
-    gridPoint.first = 20.f;
-    gridPoint.second = 20.f;
 
     // Draw horizontal grid lines
-    for ( int i = 0 , y = 0 ; y < clientRect.bottom - clientRect.top ; i++ ) {
-        y = clientRect.top - getOutlineThickness() + i * gridPoint.second + m_yMin % static_cast<int>(gridPoint.second);
+    unsigned int startI = floor( static_cast<float>(getYMin()) / static_cast<float>(getYScale()) );
+    unsigned int endI = ceil( static_cast<float>(getYMax()) / static_cast<float>(getYScale()) );
+    for ( unsigned int i = startI ; i < endI ; i++ ) {
+        gridPoint.first = 0;
+        gridPoint.second = i * getYScale();
+        gridPoint = transformToGraph( gridPoint );
 
-        MoveToEx( bufferDC , clientRect.left , y , NULL );
-        LineTo( bufferDC , clientRect.right , y );
+        MoveToEx( bufferDC , clientRect.left , gridPoint.second , NULL );
+        LineTo( bufferDC , clientRect.right , gridPoint.second );
     }
 
     // Draw vertical grid lines
-    for ( int i = 0 , x = 0 ; x < clientRect.right - clientRect.left ; i++ ) {
-        x = clientRect.left - getOutlineThickness() + i * gridPoint.first + m_xMin % static_cast<int>(gridPoint.first);
+    startI = floor( static_cast<float>(getXMin()) / static_cast<float>(getXScale()) );
+    endI = ceil( static_cast<float>(getXMax()) / static_cast<float>(getXScale()) );
+    for ( unsigned int i = startI ; i < endI ; i++ ) {
+        gridPoint.first = i * getXScale();
+        gridPoint.second = 0;
+        gridPoint = transformToGraph( gridPoint );
 
-        MoveToEx( bufferDC , x , clientRect.top , NULL );
-        LineTo( bufferDC , x , clientRect.bottom );
+        MoveToEx( bufferDC , gridPoint.first , clientRect.top , NULL );
+        LineTo( bufferDC , gridPoint.first ,  clientRect.bottom );
     }
 
     m_dataMutex.lock();
@@ -590,7 +593,7 @@ void Graph::graphThreadFunc() {
         sf::Socket::Status status;
 
         while ( m_isRunning ) {
-            if ( threadSelector.wait( sf::milliseconds( 100 ) ) ) {
+            if ( threadSelector.wait( sf::milliseconds( 50 ) ) ) {
                 if ( threadSelector.isReady( dataSocket ) ) {
                     status = dataSocket.receive( &recvData , 24 , sizeRecv );
 
@@ -624,7 +627,7 @@ void Graph::graphThreadFunc() {
                 }
             }
 
-            Sleep( 10 );
+            Sleep( 5 );
         }
     }
 

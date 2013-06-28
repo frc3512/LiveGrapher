@@ -82,7 +82,7 @@ public:
 
     void redraw();
 
-    // Transforms real coordinates to coordinates used by graph
+    // Transforms/normalizes real coordinates to coordinates used by graph
     std::pair<float , float> transformToGraph( std::pair<float , float> point );
 
 private:
