@@ -35,7 +35,6 @@
 #include "../SFML/System/Thread.hpp"
 #include "../SFML/System/Err.hpp"
 
-#include <cassert>
 #include <process.h>
 
 namespace sf
@@ -65,7 +64,6 @@ void Thread::wait()
 {
     if (m_thread)
     {
-        assert(m_threadId != GetCurrentThreadId()); // A thread cannot wait for itself!
         WaitForSingleObject(m_thread, INFINITE);
 
         CloseHandle(m_thread);

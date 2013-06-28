@@ -44,7 +44,6 @@ uint64_t ntohll( uint64_t value );
 
 namespace sf
 {
-class String;
 class TcpSocket;
 class UdpSocket;
 
@@ -198,7 +197,6 @@ public:
     Packet& operator >>(std::string&  data);
     Packet& operator >>(wchar_t*      data);
     Packet& operator >>(std::wstring& data);
-    Packet& operator >>(String&       data);
 
     ////////////////////////////////////////////////////////////
     /// Overloads of operator << to write data into the packet
@@ -219,7 +217,6 @@ public:
     Packet& operator <<(const std::string&  data);
     Packet& operator <<(const wchar_t*      data);
     Packet& operator <<(const std::wstring& data);
-    Packet& operator <<(const String&       data);
 
 protected:
 
