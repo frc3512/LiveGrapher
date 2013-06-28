@@ -602,6 +602,9 @@ void Graph::graphThreadFunc() {
                         tmp = ntohl( *( (int*)&recvData.y ) );
                         recvData.y = *( (float*)&tmp );
 
+                        /* If new data is off right of plot, move the plot so
+                         * the new data is displayed
+                         */
                         if ( recvData.x > getXMax() ) {
                             setXMin( recvData.x - getHistoryLength() );
                             setXMax( recvData.x );
