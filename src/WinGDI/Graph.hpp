@@ -12,6 +12,7 @@
 #include <utility>
 #include <map>
 #include <string>
+#include <atomic>
 
 #include "../SFML/System/Mutex.hpp"
 #include "../SFML/System/Thread.hpp"
@@ -133,7 +134,7 @@ private:
     sf::Mutex m_dataMutex;
 
     sf::Thread m_graphThread;
-    volatile bool m_isRunning;
+    volatile std::atomic<bool> m_isRunning;
     void graphThreadFunc();
 
     static std::map<HWND , Graph*> m_map;
