@@ -4,13 +4,16 @@
 //Author: FRC Team 3512, Spartatroniks
 //=============================================================================
 
-#include "Graph.hpp"
-#include "UIFont.hpp"
-#include <cmath>
-#include <cstring>
 #include <iostream> // TODO Remove me
 #include <fstream>
+
+#include <cmath>
+#include <cstring>
+#include <cassert>
 #include <sys/time.h>
+
+#include "Graph.hpp"
+#include "UIFont.hpp"
 
 #include "../SFML/Network/SocketSelector.hpp"
 #include "../SFML/Network/TcpSocket.hpp"
@@ -108,7 +111,7 @@ Graph::Graph( HWND parentWindow , const Vector2i& position , const Vector2i& siz
 
 Graph::~Graph() {
     // Wait for graph data reception thread to exit
-    m_isRunning = false;
+    m_isRunning.store( false );
     m_graphThread.wait();
 
     DeleteObject( m_gridPen );
@@ -119,10 +122,10 @@ Graph::~Graph() {
 }
 
 void Graph::reconnect() {
-    m_isRunning = false;
+    m_isRunning.store( false );
     m_graphThread.wait();
 
-    m_isRunning = true;
+    m_isRunning.store( true );
     m_graphThread.launch();
 }
 
@@ -598,11 +601,18 @@ void Graph::graphThreadFunc() {
 
                     // Add all points sent to local graph
                     if ( status == sf::Socket::Done ) {
-                        tmp = ntohl( *( (int*)&recvData.x ) );
-                        recvData.x = *( (float*)&tmp );
+                        // This will only work if ints are the same size as floats
+                        assert( sizeof(int) == sizeof(float) );
 
-                        tmp = ntohl( *( (int*)&recvData.y ) );
-                        recvData.y = *( (float*)&tmp );
+                        // Convert endianness of x component
+                        std::memcpy( &tmp , &recvData.x , sizeof(recvData.x) );
+                        tmp = ntohl( tmp );
+                        std::memcpy( &recvData.x , &tmp , sizeof(recvData.x) );
+
+                        // Convert endianness of y component
+                        std::memcpy( &tmp , &recvData.y , sizeof(recvData.y) );
+                        tmp = ntohl( tmp );
+                        std::memcpy( &recvData.y , &tmp , sizeof(recvData.y) );
 
                         /* If new data is off right of plot, move the plot so
                          * the new data is displayed
