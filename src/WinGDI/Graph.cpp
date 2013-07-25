@@ -103,8 +103,7 @@ Graph::Graph( HWND parentWindow , const Vector2i& position , const Vector2i& siz
     m_xHistory = size.X;
 
     // Add window to global map
-    std::map<HWND , Graph*>::iterator it = m_map.begin();
-    m_map.insert( it , std::pair<HWND , Graph*>( m_window , this ) );
+    m_map.insert( m_map.begin() , std::pair<HWND , Graph*>( m_window , this ) );
 }
 
 Graph::~Graph() {
