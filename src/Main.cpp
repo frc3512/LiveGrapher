@@ -64,8 +64,6 @@ INT WINAPI WinMain( HINSTANCE Instance , HINSTANCE , LPSTR , INT ) {
 
     gMainIcon = LoadIcon( Instance , "mainIcon" );
 
-    HBRUSH mainBrush = CreateSolidBrush( RGB( 240 , 240 , 240 ) );
-
     // Define a class for our main window
     WNDCLASSEX WindowClass;
     ZeroMemory( &WindowClass , sizeof(WNDCLASSEX) );
@@ -77,7 +75,7 @@ INT WINAPI WinMain( HINSTANCE Instance , HINSTANCE , LPSTR , INT ) {
     WindowClass.hInstance     = Instance;
     WindowClass.hIcon         = gMainIcon;
     WindowClass.hCursor       = LoadCursor( NULL , IDC_ARROW );
-    WindowClass.hbrBackground = mainBrush;
+    WindowClass.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
     WindowClass.lpszMenuName  = "mainMenu";
     WindowClass.lpszClassName = "LiveGrapher";
     WindowClass.hIconSm       = gMainIcon;
@@ -93,7 +91,7 @@ INT WINAPI WinMain( HINSTANCE Instance , HINSTANCE , LPSTR , INT ) {
     StaticClass.hInstance     = Instance;
     StaticClass.hIcon         = gMainIcon;
     StaticClass.hCursor       = LoadCursor( NULL , IDC_ARROW );
-    StaticClass.hbrBackground = mainBrush;
+    StaticClass.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
     StaticClass.lpszMenuName  = "mainMenu";
     StaticClass.lpszClassName = "LiveStatic";
     StaticClass.hIconSm       = gMainIcon;

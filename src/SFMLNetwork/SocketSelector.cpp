@@ -34,7 +34,6 @@
 ////////////////////////////////////////////////////////////
 #include "../SFML/Network/SocketSelector.hpp"
 #include "../SFML/Network/Socket.hpp"
-#include "../SFML/System/Err.hpp"
 #include <utility>
 
 #ifdef _MSC_VER

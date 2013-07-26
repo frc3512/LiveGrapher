@@ -34,7 +34,7 @@
 ////////////////////////////////////////////////////////////
 #include "../SFML/Network/TcpListener.hpp"
 #include "../SFML/Network/TcpSocket.hpp"
-#include "../SFML/System/Err.hpp"
+#include <iostream>
 
 
 namespace sf
@@ -77,7 +77,7 @@ Socket::Status TcpListener::listen(unsigned short port)
     if (bind(getHandle(), reinterpret_cast<sockaddr*>(&address), sizeof(address)) == -1)
     {
         // Not likely to happen, but...
-        err() << "Failed to bind listener socket to port " << port << std::endl;
+        std::cerr << "Failed to bind listener socket to port " << port << std::endl;
         return Error;
     }
 
@@ -85,7 +85,7 @@ Socket::Status TcpListener::listen(unsigned short port)
     if (::listen(getHandle(), 0) == -1)
     {
         // Oops, socket is deaf
-        err() << "Failed to listen to port " << port << std::endl;
+        std::cerr << "Failed to listen to port " << port << std::endl;
         return Error;
     }
 
@@ -107,7 +107,7 @@ Socket::Status TcpListener::accept(TcpSocket& socket)
     // Make sure that we're listening
     if (getHandle() == INVALID_SOCKET)
     {
-        err() << "Failed to accept a new connection, the socket is not listening" << std::endl;
+        std::cerr << "Failed to accept a new connection, the socket is not listening" << std::endl;
         return Error;
     }
 

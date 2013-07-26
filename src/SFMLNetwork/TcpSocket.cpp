@@ -35,7 +35,7 @@
 #include "../SFML/Network/TcpSocket.hpp"
 #include "../SFML/Network/IpAddress.hpp"
 #include "../SFML/Network/Packet.hpp"
-#include "../SFML/System/Err.hpp"
+#include <iostream>
 #include <algorithm>
 #include <cstring>
 
@@ -217,7 +217,7 @@ Socket::Status TcpSocket::send(const void* data, std::size_t size)
     // Check the parameters
     if (!data || (size == 0))
     {
-        err() << "Cannot send data over the network (no data to send)" << std::endl;
+        std::cerr << "Cannot send data over the network (no data to send)" << std::endl;
         return Error;
     }
 
@@ -247,7 +247,7 @@ Socket::Status TcpSocket::receive(void* data, std::size_t size, std::size_t& rec
     // Check the destination buffer
     if (!data)
     {
-        err() << "Cannot receive data from the network (the destination buffer is invalid)" << std::endl;
+        std::cerr << "Cannot receive data from the network (the destination buffer is invalid)" << std::endl;
         return Error;
     }
 
