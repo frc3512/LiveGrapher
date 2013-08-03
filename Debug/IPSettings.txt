@@ -1,0 +1,3 @@
+#LiveGrapher sends to this
+robotIP           = 10.1.0.100
+robotGraphPort    = 3513

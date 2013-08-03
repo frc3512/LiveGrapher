@@ -27,7 +27,6 @@
 #include "WinGDI/Graph.hpp"
 
 // Global because the drawing is set up to be continuous in CALLBACK OnEvent
-HINSTANCE gInstance = NULL;
 HWND gDisplayWindow = NULL;
 HWND gTabWindow = NULL;
 HICON gMainIcon = NULL;
@@ -50,8 +49,6 @@ LRESULT CALLBACK StaticProc( HWND handle , UINT message , WPARAM wParam , LPARAM
 BOOL CALLBACK AboutCbk( HWND hDlg , UINT message , WPARAM wParam , LPARAM lParam );
 
 INT WINAPI WinMain( HINSTANCE Instance , HINSTANCE , LPSTR , INT ) {
-    gInstance = Instance;
-
     INITCOMMONCONTROLSEX icc;
 
     // Initialize common controls.
@@ -123,7 +120,7 @@ INT WINAPI WinMain( HINSTANCE Instance , HINSTANCE , LPSTR , INT ) {
     /* ======================================= */
 
     // Load keyboard accelerators
-    hAccel = LoadAccelerators( gInstance , "KeyAccel" );
+    hAccel = LoadAccelerators( Instance , "KeyAccel" );
 
     while ( GetMessage( &Message , NULL , 0 , 0 ) > 0 ) {
         if ( !TranslateAccelerator(
@@ -178,7 +175,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 WindowVars::height - 52,
                 handle,
                 NULL,
-                gInstance,
+                ((LPCREATESTRUCT)lParam)->hInstance,
                 NULL);
 
         SendMessage( tabWindow,
@@ -207,7 +204,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 tabWinRect.bottom - 9 - 14,
                 tabWindow,
                 reinterpret_cast<HMENU>( IDC_TABSTART ),
-                gInstance,
+                ((LPCREATESTRUCT)lParam)->hInstance,
                 NULL);
 
         gTabs.push_back( tab1 );
@@ -222,7 +219,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 tabWinRect.bottom - 9 - 14,
                 tabWindow,
                 reinterpret_cast<HMENU>( IDC_TABSTART + 1 ),
-                gInstance,
+                ((LPCREATESTRUCT)lParam)->hInstance,
                 NULL);
 
         gTabs.push_back( tab2 );
@@ -237,7 +234,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 tabWinRect.bottom - 9 - 14,
                 tabWindow,
                 reinterpret_cast<HMENU>( IDC_TABSTART + 2 ),
-                gInstance,
+                ((LPCREATESTRUCT)lParam)->hInstance,
                 NULL);
 
         gTabs.push_back( tab3 );
@@ -278,7 +275,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 tabWinRect.bottom - 22 - 18,
                 tab1,
                 reinterpret_cast<HMENU>( IDC_GRAPHGROUP ),
-                gInstance,
+                ((LPCREATESTRUCT)lParam)->hInstance,
                 NULL);
 
         SendMessage( graphGroup,
@@ -286,7 +283,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 reinterpret_cast<WPARAM>( GetStockObject( DEFAULT_GUI_FONT ) ),
                 MAKELPARAM( FALSE , 0 ) );
 
-        // Create PID loop graph
+        // Create graph
         gDrawables.push_back( new Graph( graphGroup , Vector2i( 9 , 23 ) , Vector2i( 450 , 350 ) ) );
         Graph* pidGraph = static_cast<Graph*>(gDrawables[0]);
         pidGraph->setHistoryLength( 450 * 10 );
@@ -388,7 +385,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 27,
                 handle,
                 reinterpret_cast<HMENU>( IDM_CONNECT ),
-                gInstance,
+                ((LPCREATESTRUCT)lParam)->hInstance,
                 NULL);
 
         SendMessage( connectButton,
@@ -406,7 +403,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 27,
                 handle,
                 reinterpret_cast<HMENU>( IDM_CLEAR ),
-                gInstance,
+                ((LPCREATESTRUCT)lParam)->hInstance,
                 NULL);
 
         SendMessage( clearButton,
@@ -424,7 +421,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
                 27,
                 handle,
                 reinterpret_cast<HMENU>( IDM_SAVE ),
-                gInstance,
+                ((LPCREATESTRUCT)lParam)->hInstance,
                 NULL);
 
         SendMessage( saveButton,
@@ -469,7 +466,7 @@ LRESULT CALLBACK MainProc( HWND handle , UINT message , WPARAM wParam , LPARAM l
             }
 
             case IDM_ABOUT: {
-                DialogBox( gInstance , MAKEINTRESOURCE(IDD_ABOUTBOX) , handle , AboutCbk );
+                DialogBox( GetModuleHandle(NULL) , MAKEINTRESOURCE(IDD_ABOUTBOX) , handle , AboutCbk );
 
                 break;
             }

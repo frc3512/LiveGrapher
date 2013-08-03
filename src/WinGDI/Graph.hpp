@@ -11,6 +11,7 @@
 #include <list>
 #include <utility>
 #include <map>
+#include <vector>
 #include <string>
 #include <atomic>
 
@@ -20,10 +21,10 @@
 typedef std::pair<float , float> Pair;
 
 struct DataSet {
-    DataSet( std::list<std::pair<float , float>> n_data , COLORREF n_color );
+    DataSet( std::list<Pair> n_data , COLORREF n_color );
 
-    std::list<std::pair<float , float>> data;
-    std::list<std::pair<float , float>>::iterator startingPoint;
+    std::list<Pair> data;
+    std::list<Pair>::iterator startingPoint;
     COLORREF color;
 };
 
@@ -38,7 +39,7 @@ public:
     void reconnect();
 
     // Add data point to graph at given index (push back)
-    void addData( unsigned int index , const std::pair<float , float>& point );
+    void addData( unsigned int index , const Pair& point );
 
     // Remove oldest data point from graph at given index (pop front)
     void removeData( unsigned int index );
@@ -84,7 +85,7 @@ public:
     void redraw();
 
     // Transforms/normalizes real coordinates to coordinates used by graph
-    std::pair<float , float> transformToGraph( std::pair<float , float> point );
+    Pair transformToGraph( Pair point );
 
 private:
     // Set xMin of plot
@@ -133,9 +134,23 @@ private:
 
     sf::Mutex m_dataMutex;
 
+    // Contains names for all graphs available on host
+    std::vector<std::string> m_graphNames;
+
+    // Holds number of graph names contained in m_graphHostNames
+    unsigned char m_graphNamesSize;
+
+    // Each bit holds receive state of data set (1 = recv, 0 = not recv)
+    unsigned long long m_curSelect;
+
+    // Provides way to get a data set's index given the name
+    std::map<std::string , unsigned char> m_graphNamesMap;
+
     sf::Thread m_graphThread;
     volatile std::atomic<bool> m_isRunning;
     void graphThreadFunc();
+
+    static BOOL CALLBACK GraphDlgCbk( HWND hDlg , UINT message , WPARAM wParam , LPARAM lParam );
 
     static std::map<HWND , Graph*> m_map;
     static LRESULT CALLBACK WindowProc( HWND handle , UINT message , WPARAM wParam , LPARAM lParam );

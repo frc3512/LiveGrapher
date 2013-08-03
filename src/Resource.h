@@ -8,6 +8,7 @@
 #define RESOURCE_H
 
 #define IDD_ABOUTBOX              101
+#define IDD_GRAPHSELECTBOX        102
 
 #define IDC_GRAPHGROUP            201
 #define IDC_TABSTART              202
@@ -23,5 +24,8 @@
 #define IDM_SAVE                  303
 #define IDM_EXIT                  304
 #define IDM_ABOUT                 305
+
+/* Graph dialog's check box identifiers start at this number */
+#define IDC_GRAPHSTART            401
 
 #endif // RESOURCE_H

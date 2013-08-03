@@ -4,7 +4,6 @@
 //Author: FRC Team 3512, Spartatroniks
 //=============================================================================
 
-#include <iostream> // TODO Remove me
 #include <fstream>
 
 #include <cmath>
@@ -14,6 +13,8 @@
 
 #include "Graph.hpp"
 #include "UIFont.hpp"
+#include "../Settings.hpp"
+#include "../Resource.h"
 
 #include "../SFML/Network/SocketSelector.hpp"
 #include "../SFML/Network/TcpSocket.hpp"
@@ -25,20 +26,115 @@
 
 std::map<HWND , Graph*> Graph::m_map;
 
+COLORREF HSVtoRGB( float h , float s , float v ) {
+    float r;
+    float g;
+    float b;
+
+    float chroma = v * s;
+    float hPrime = h / 60.f;
+    float m = v - chroma;
+
+    float modTemp = hPrime - static_cast<int>(hPrime);
+    float x = chroma * ( 1.f - std::fabs( static_cast<int>(hPrime) % 2 + modTemp - 1 ) );
+
+    if ( 0 <= hPrime && hPrime < 1 ) {
+        r = chroma;
+        g = x;
+        b = 0;
+    }
+    else if ( 1 <= hPrime && hPrime < 2 ) {
+        r = x;
+        g = chroma;
+        b = 0;
+    }
+    else if ( 2 <= hPrime && hPrime < 3 ) {
+        r = 0;
+        g = chroma;
+        b = x;
+    }
+    else if ( 3 <= hPrime && hPrime < 4 ) {
+        r = 0;
+        g = x;
+        b = chroma;
+    }
+    else if ( 4 <= hPrime && hPrime < 5 ) {
+        r = x;
+        g = 0;
+        b = chroma;
+    }
+    else if ( 5 <= hPrime && hPrime < 6 ) {
+        r = chroma;
+        g = 0;
+        b = x;
+    }
+    else {
+        r = 0;
+        g = 0;
+        b = 0;
+    }
+
+    r += m;
+    g += m;
+    b += m;
+
+    return RGB( r * 255 , g * 255 , b * 255 );
+}
+
 /* Graph Packet Structure
  *
- * char* graphName (16 bytes)
- * float32 x
- * float32 y
- * ... <other graphs>
+ * Sending packets:
+ *     id can be one of three values with its respective packet structure:
+ *
+ *     'c': Asks host to start sending data set of given name
+ *     struct packet_t {
+ *         char id;
+ *         char graphName[15];
+ *     }
+ *
+ *     'd': Asks host to stop sending data set of given name
+ *     struct packet_t {
+ *         char id;
+ *         char graphName[15];
+ *     }
+ *
+ *     'l': Asks host to send list of names of available data sets
+ *     struct packet_t {
+ *         char id;
+ *     }
+ *
+ * Receiving packets:
+ *     id can be one of two values with its respective packet structure:
+ *
+ *     'l': Contains name of data set on host
+ *     struct packet_t {
+ *         char id;
+ *         char graphName[15];
+ *     }
+ *
+ *     'p': Contains point of data from given data set
+ *     struct packet_t {
+ *         char id;
+ *         char graphName[15];
+ *         float x;
+ *         float y;
+ *     }
  */
-typedef struct packet_t {
-    char graphName[16];
+struct packet_t {
+    char id;
+    char graphName[15];
     float x;
     float y;
-} packet_t;
+} __attribute__((packed));
 
-DataSet::DataSet( std::list<std::pair<float , float>> n_data , COLORREF n_color ) {
+struct packet_list_t {
+    char id;
+    char graphName[15];
+    char eof;
+    char padding[7];
+} __attribute__((packed));
+
+DataSet::DataSet( std::list<Pair> n_data , COLORREF n_color ) {
     data = n_data;
     color = n_color;
     startingPoint = data.begin();
@@ -78,6 +174,9 @@ GraphClassInit::~GraphClassInit() {
 
 Graph::Graph( HWND parentWindow , const Vector2i& position , const Vector2i& size ) :
             Drawable( parentWindow , position , size , RGB( 255 , 255 , 255 ) , RGB( 0 , 0 , 0 ) , 1 ) ,
+            m_graphNames( 64 ) ,
+            m_graphNamesSize( 0 ) ,
+            m_curSelect( 0 ) ,
             m_graphThread( &Graph::graphThreadFunc , this ) ,
             m_isRunning( true ) {
     m_window = CreateWindowEx( 0 ,
@@ -165,7 +264,7 @@ void Graph::draw( PAINTSTRUCT* ps ) {
             clientRect.bottom
             );
 
-    std::pair<float , float> gridPoint;
+    Pair gridPoint;
 
     // Draw horizontal grid lines
     unsigned int startI = floor( static_cast<float>(getYMin()) / static_cast<float>(getYScale()) );
@@ -201,7 +300,7 @@ void Graph::draw( PAINTSTRUCT* ps ) {
             // Switch current pen with one needed for current data set
             HPEN linePen = CreatePen( PS_SOLID , 2 , set->color );
             HPEN lastPen = (HPEN)SelectObject( bufferDC , linePen );
-            std::pair<float , float> tempPoint;
+            Pair tempPoint;
 
             tempPoint = transformToGraph( *(set->startingPoint) );
 
@@ -227,7 +326,7 @@ void Graph::draw( PAINTSTRUCT* ps ) {
             MoveToEx( bufferDC , tempPoint.first , clientRect.bottom - tempPoint.second , NULL );
             set->startingPoint++;
 
-            for ( std::list<std::pair<float , float>>::iterator pt = set->startingPoint ; pt != set->data.end() ; pt++ ) {
+            for ( std::list<Pair>::iterator pt = set->startingPoint ; pt != set->data.end() ; pt++ ) {
                 // Normalize point before we draw it
                 tempPoint = transformToGraph(*pt);
 
@@ -262,7 +361,7 @@ void Graph::draw( PAINTSTRUCT* ps ) {
     DeleteDC( bufferDC );
 }
 
-void Graph::addData( unsigned int index , const std::pair<float , float>& data ) {
+void Graph::addData( unsigned int index , const Pair& data ) {
     m_dataMutex.lock();
 
     std::list<DataSet>::iterator set = m_dataSets.begin();
@@ -335,14 +434,17 @@ COLORREF Graph::getGraphColor( unsigned int index ) {
         set++;
     }
 
-    return (*set).color;
+    return set->color;
 }
 
 void Graph::createGraph( COLORREF color ) {
     m_dataMutex.lock();
 
-    // TODO Make list with no points
-    std::list<std::pair<float , float>> data = { std::make_pair( 0.f , 0.f ) };
+    /* TODO Make list with no points; it's necessary now b/c start iterators
+     * need a valid starting pt
+     */
+    std::list<Pair> data = {};
+    //std::list<Pair> data = { std::make_pair( 0.f , 0.f ) };
     m_dataSets.push_back( DataSet( data , color ) );
 
     m_dataMutex.unlock();
@@ -404,8 +506,8 @@ bool Graph::saveToCSV( const std::string& fileName ) {
         return false;
     }
 
-    std::vector<std::list<std::pair<float , float>>::iterator> points( m_dataSets.size() );
-    std::vector<std::list<std::pair<float , float>>::iterator> ptEnds( m_dataSets.size() );
+    std::vector<std::list<Pair>::iterator> points( m_dataSets.size() );
+    std::vector<std::list<Pair>::iterator> ptEnds( m_dataSets.size() );
 
     size_t i = 0;
     for ( std::list<DataSet>::iterator sets = m_dataSets.begin() ; sets != m_dataSets.end() ; sets++ ) {
@@ -527,7 +629,7 @@ int Graph::getYScale() {
     return m_yScale;
 }
 
-std::pair<float , float> Graph::transformToGraph( std::pair<float , float> point ) {
+Pair Graph::transformToGraph( Pair point ) {
     RECT windowRect;
     GetClientRect( m_window , &windowRect );
 
@@ -535,6 +637,88 @@ std::pair<float , float> Graph::transformToGraph( std::pair<float , float> point
     point.second = ( point.second - getYMin() ) * ( windowRect.bottom - windowRect.top ) / ( getYMax() - getYMin() );
 
     return point;
+}
+
+// Message handler for "Select Graphs" box
+BOOL CALLBACK Graph::GraphDlgCbk( HWND hDlg , UINT message , WPARAM wParam , LPARAM lParam ) {
+    switch ( message ) {
+    case WM_INITDIALOG: {
+        /* Add dialog to map since its real parent can't be retrieved with
+         * GetParent() for some reason
+         */
+        m_map.insert( m_map.begin() , std::pair<HWND , Graph*>( hDlg , m_map[(HWND)lParam] ) );
+
+        RECT windowSize;
+        GetClientRect( hDlg , &windowSize );
+
+        // Create check box for each data set
+        unsigned int idIndex = 0;
+        HGDIOBJ hfDefault = GetStockObject( DEFAULT_GUI_FONT );
+        for ( unsigned int i = 0 ; i != m_map[(HWND)lParam]->m_graphNamesSize ; i++ ) {
+            HWND checkBox = CreateWindowEx( 0,
+                "BUTTON",
+                m_map[hDlg]->m_graphNames[i].c_str(),
+                WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
+                13,
+                idIndex * 20 + 13,
+                100,
+                13,
+                hDlg,
+                reinterpret_cast<HMENU>( IDC_GRAPHSTART  + idIndex ),
+                GetModuleHandle(NULL),
+                NULL);
+
+            SendMessage(checkBox,
+                WM_SETFONT,
+                reinterpret_cast<WPARAM>( hfDefault ),
+                MAKELPARAM( FALSE , 0 ) );
+
+            CheckDlgButton( hDlg , IDC_GRAPHSTART + idIndex , m_map[hDlg]->m_curSelect & (1 << idIndex) );
+
+            idIndex++;
+        }
+
+        return TRUE;
+    }
+
+    case WM_COMMAND: {
+        int wmId = LOWORD(wParam);
+
+        if ( wmId == IDOK ) {
+            // Remove dialog window from map since it's about to be destroyed
+            m_map.erase( hDlg );
+
+            EndDialog( hDlg , LOWORD(wParam) );
+        }
+        else if ( wmId >= IDC_GRAPHSTART ) {
+            // Store pointer to selection bits
+            unsigned long long* curSelect = &(m_map[hDlg]->m_curSelect);
+
+            // Toggle state of check box
+            CheckDlgButton( hDlg , wmId , !(*curSelect & (1 << (wmId - IDC_GRAPHSTART) )) );
+
+            // Toggle selection bit in m_curSelect
+            *curSelect ^= (1 << (wmId - IDC_GRAPHSTART) );
+        }
+
+        break;
+    }
+
+    case WM_CLOSE: {
+        // Remove dialog window from map since it's about to be destroyed
+        m_map.erase( hDlg );
+
+        EndDialog( hDlg , 0 );
+
+        break;
+    }
+
+    default: {
+        return FALSE;
+    }
+    }
+
+    return FALSE;
 }
 
 LRESULT CALLBACK Graph::WindowProc( HWND handle , UINT message , WPARAM wParam , LPARAM lParam ) {
@@ -559,84 +743,178 @@ LRESULT CALLBACK Graph::WindowProc( HWND handle , UINT message , WPARAM wParam ,
 }
 
 void Graph::graphThreadFunc() {
+    enum Error {
+        FailConnect = 0,
+        Disconnected
+    };
+
+    Settings ipSettings( "IPSettings.txt" );
+
     sf::SocketSelector threadSelector;
+
     sf::TcpSocket dataSocket;
-    unsigned short dataPort = 3513;
-    //sf::IpAddress remoteIP( 127 , 0 , 0 , 1 );
-    sf::IpAddress remoteIP( 10 , 35 , 12 , 2 );
+
+    sf::IpAddress remoteIP( ipSettings.getValueFor( "robotIP" ) );
+    unsigned short dataPort = std::strtoul( ipSettings.getValueFor( "robotGraphPort" ).c_str() , NULL , 10 );
+
     sf::Socket::Status status = sf::Socket::Disconnected;
 
-    while ( m_isRunning && status != sf::Socket::Done ) {
+    char buffer[24];
+    struct packet_t recvData;
+    struct packet_list_t listData;
+    size_t sizeRecv = 0;
+
+    // Reset list of data set recv statuses
+    m_curSelect = 0;
+
+    try {
+        // Attempt connection to remote data set host
         status = dataSocket.connect( remoteIP , dataPort , sf::milliseconds( 1000 ) );
-        std::cout << "connect status=" << status << "\n";
-    }
 
-    // Request data sets from host
-    if ( status == sf::Socket::Done ) {
-        char dataBuffer[16] = "PID0";
-        dataSocket.send( dataBuffer , 16 );
-        std::cout << "Sent PID0 request\n";
+        if ( status != sf::Socket::Done ) {
+            throw Error::FailConnect;
+        }
 
-        char name[5] = "PID1";
-        std::strcpy( dataBuffer , name );
-        dataSocket.send( dataBuffer , 16 );
-        std::cout << "Sent PID1 request\n";
-    }
+        threadSelector.add( dataSocket );
 
-    threadSelector.add( dataSocket );
+        // Request list of all data sets on remote host
+        recvData.id = 'l';
+        do {
+            status = dataSocket.send( &recvData , 16 );
 
-    if ( status == sf::Socket::Done ) {
-        createGraph( RGB( 0 , 120 , 0 ) );
-        createGraph( RGB( 255 , 0 , 0 ) );
+            if ( status == sf::Socket::Disconnected ) {
+                throw Error::Disconnected;
+            }
+        } while ( m_isRunning && status != sf::Socket::Done );
 
-        packet_t recvData;
-        int tmp;
-        unsigned int sizeRecv = 0;
-        sf::Socket::Status status;
+        // Clear m_graphNames before refilling it
+        m_graphNamesSize = 0;
+        m_graphNamesMap.clear();
 
-        while ( m_isRunning ) {
+        unsigned int i = 0;
+
+        // Get list of available data sets from host and store them in a map
+        bool stillRecvList = true;
+        while ( m_isRunning && stillRecvList ) {
             if ( threadSelector.wait( sf::milliseconds( 50 ) ) ) {
                 if ( threadSelector.isReady( dataSocket ) ) {
-                    status = dataSocket.receive( &recvData , 24 , sizeRecv );
+                    status = dataSocket.receive( &buffer , sizeof(buffer) , sizeRecv );
 
-                    // Add all points sent to local graph
                     if ( status == sf::Socket::Done ) {
-                        // This will only work if ints are the same size as floats
-                        assert( sizeof(int) == sizeof(float) );
+                        if ( buffer[0] == 'l' ) {
+                            std::memcpy( &listData , buffer , sizeof(buffer) );
 
-                        // Convert endianness of x component
-                        std::memcpy( &tmp , &recvData.x , sizeof(recvData.x) );
-                        tmp = ntohl( tmp );
-                        std::memcpy( &recvData.x , &tmp , sizeof(recvData.x) );
+                            m_graphNames[i] = listData.graphName;
+                            m_graphNamesMap[listData.graphName] = i;
 
-                        // Convert endianness of y component
-                        std::memcpy( &tmp , &recvData.y , sizeof(recvData.y) );
-                        tmp = ntohl( tmp );
-                        std::memcpy( &recvData.y , &tmp , sizeof(recvData.y) );
+                            i++;
 
-                        /* If new data is off right of plot, move the plot so
-                         * the new data is displayed
-                         */
-                        if ( recvData.x > getXMax() ) {
-                            setXMin( recvData.x - getHistoryLength() );
-                            setXMax( recvData.x );
-                        }
-
-                        std::cout << recvData.graphName << ": " << recvData.x << ", " << recvData.y << "\n";
-
-                        if ( std::strcmp( recvData.graphName , "PID0" ) == 0 ) {
-                            addData( 0 , std::make_pair( recvData.x , recvData.y ) );
-                        }
-                        else if ( std::strcmp( recvData.graphName , "PID1" ) == 0 ) {
-                            addData( 1 , std::make_pair( recvData.x , recvData.y ) );
+                            // If that was the last name, exit the recv loop
+                            if ( listData.eof == 1 ) {
+                                stillRecvList = false;
+                            }
                         }
                     }
-
-                    redraw();
                 }
             }
+            else if ( status == sf::Socket::Disconnected ) {
+                throw Error::Disconnected;
+            }
+        }
 
-            Sleep( 5 );
+        m_graphNamesSize = i;
+
+        /* Allow user to select which data sets to receive
+         * lParam argument is the parent window of the dialog box
+         */
+        DialogBoxParam( GetModuleHandle(NULL) , MAKEINTRESOURCE(IDD_GRAPHSELECTBOX) , m_window , GraphDlgCbk , (LPARAM)m_window );
+
+        // Send updated status on all streams based on the bit array
+        for ( unsigned int i = 0 ; i < m_graphNamesSize ; i++ ) {
+            // If the graph data is requested
+            if ( m_curSelect & (1 << i) ) {
+                recvData.id = 'c';
+
+                // Store name of data set to buffer
+                std::strcpy( recvData.graphName , m_graphNames[i].c_str() );
+
+                // Send request
+                dataSocket.send( &recvData , 16 );
+            }
+            else {
+                recvData.id = 'd';
+            }
+
+            /* Create a graph for each data set requested.
+             * V starts out at 1. H cycles through six colors. When it wraps
+             * around 360 degrees, V is decremented by 0.25. S is always 1.
+             * This algorithm gives 25 possible values, one being black.
+             */
+            createGraph( HSVtoRGB( 60 * i % 360 , 1 , 1 - 0.25 * std::floor( i / 6 ) ) );
+        }
+
+        if ( status == sf::Socket::Done ) {
+            int tmp; // Used for endianness conversions
+
+            while ( m_isRunning ) {
+                if ( threadSelector.wait( sf::milliseconds( 50 ) ) ) {
+                    if ( threadSelector.isReady( dataSocket ) ) {
+                        status = dataSocket.receive( &buffer , sizeof(buffer) , sizeRecv );
+
+                        if ( status == sf::Socket::Done ) {
+                            if ( buffer[0] == 'd' ) {
+                                std::memcpy( &recvData , &buffer , sizeof(buffer) );
+
+                                /* ===== Add sent point to local graph ===== */
+                                // This will only work if ints are the same size as floats
+                                assert( sizeof(int) == sizeof(float) );
+
+                                // Convert endianness of x component
+                                std::memcpy( &tmp , &recvData.x , sizeof(recvData.x) );
+                                tmp = ntohl( tmp );
+                                std::memcpy( &recvData.x , &tmp , sizeof(recvData.x) );
+
+                                // Convert endianness of y component
+                                std::memcpy( &tmp , &recvData.y , sizeof(recvData.y) );
+                                tmp = ntohl( tmp );
+                                std::memcpy( &recvData.y , &tmp , sizeof(recvData.y) );
+
+                                /* If new data is off right of plot, move the plot so
+                                 * the new data is displayed
+                                 */
+                                if ( recvData.x > getXMax() ) {
+                                    setXMin( recvData.x - getHistoryLength() );
+                                    setXMax( recvData.x );
+                                }
+
+                                /* Add data to appropriate data set; store point in
+                                 * temps b/c references can't be made of packed
+                                 * (unaligned) struct variables
+                                 */
+                                float x = recvData.x;
+                                float y = recvData.y;
+                                addData( m_graphNamesMap[recvData.graphName] , Pair( x , y ) );
+                                /* ========================================= */
+                            }
+                        }
+                        else {
+                            throw Error::Disconnected;
+                        }
+
+                        redraw();
+                    }
+                }
+
+                Sleep( 5 );
+            }
+        }
+    }
+    catch ( Error& exception ) {
+        if ( exception == Error::FailConnect ) {
+            MessageBox( m_window , "Connection to remote host failed" , "Connection Error" , MB_ICONERROR | MB_OK );
+        }
+        else if ( exception == Error::Disconnected ) {
+            MessageBox( m_window , "Unexpected disconnection from remote host" , "Connection Error" , MB_ICONERROR | MB_OK );
         }
     }
 

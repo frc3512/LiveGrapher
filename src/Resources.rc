@@ -39,6 +39,15 @@ BEGIN
     LTEXT            "All Rights Reserved",          IDC_STATIC, 30, 48, 63,  10
 END
 
+////////// Graph Selection Dialog
+IDD_GRAPHSELECTBOX DIALOGEX (320 - 85) / 2 - 18, (240 - 31) / 2 - 24, 170, 69
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select Graphs"
+FONT 10, "MS Shell Dlg"
+BEGIN
+    DEFPUSHBUTTON   "OK", IDOK, 114, 49, 50, 14, WS_GROUP
+END
+
 ////////// Properties
 1 VERSIONINFO
 FILEVERSION     1,0,0,0
