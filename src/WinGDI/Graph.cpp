@@ -13,7 +13,6 @@
 
 #include "Graph.hpp"
 #include "UIFont.hpp"
-#include "../Settings.hpp"
 #include "../Resource.h"
 
 #include "../SFML/Network/SocketSelector.hpp"
@@ -174,6 +173,7 @@ GraphClassInit::~GraphClassInit() {
 
 Graph::Graph( HWND parentWindow , const Vector2i& position , const Vector2i& size ) :
             Drawable( parentWindow , position , size , RGB( 255 , 255 , 255 ) , RGB( 0 , 0 , 0 ) , 1 ) ,
+            m_settings( "IPSettings.txt" ) ,
             m_graphNames( 64 ) ,
             m_graphNamesSize( 0 ) ,
             m_curSelect( 0 ) ,
@@ -194,15 +194,15 @@ Graph::Graph( HWND parentWindow , const Vector2i& position , const Vector2i& siz
 
     m_gridPen = CreatePen( PS_SOLID , 1 , RGB( 0 , 0 , 0 ) );
 
-    m_xMin = 0.f;
-    m_yMin = 0.f;
-    m_xMax = size.X;
-    m_yMax = size.Y;
+    m_xMin = std::atoi( m_settings.getValueFor( "xMin" ).c_str() );
+    m_yMin = std::atoi( m_settings.getValueFor( "yMin" ).c_str() );
+    m_xMax = std::atoi( m_settings.getValueFor( "xMax" ).c_str() );
+    m_yMax = std::atoi( m_settings.getValueFor( "yMax" ).c_str() );
 
-    m_xScale = 100.f;
-    m_yScale = 200.f;
+    m_xScale = std::atoi( m_settings.getValueFor( "xScale" ).c_str() );
+    m_yScale = std::atoi( m_settings.getValueFor( "yScale" ).c_str() );
 
-    m_xHistory = size.X;
+    m_xHistory = std::atoi( m_settings.getValueFor( "xHistory" ).c_str() );
 
     // Add window to global map
     m_map.insert( m_map.begin() , std::pair<HWND , Graph*>( m_window , this ) );
@@ -443,8 +443,7 @@ void Graph::createGraph( COLORREF color ) {
     /* TODO Make list with no points; it's necessary now b/c start iterators
      * need a valid starting pt
      */
-    std::list<Pair> data = {};
-    //std::list<Pair> data = { std::make_pair( 0.f , 0.f ) };
+    std::list<Pair> data = { std::make_pair( 0.f , 0.f ) };
     m_dataSets.push_back( DataSet( data , color ) );
 
     m_dataMutex.unlock();
@@ -748,14 +747,12 @@ void Graph::graphThreadFunc() {
         Disconnected
     };
 
-    Settings ipSettings( "IPSettings.txt" );
-
     sf::SocketSelector threadSelector;
 
     sf::TcpSocket dataSocket;
 
-    sf::IpAddress remoteIP( ipSettings.getValueFor( "robotIP" ) );
-    unsigned short dataPort = std::strtoul( ipSettings.getValueFor( "robotGraphPort" ).c_str() , NULL , 10 );
+    sf::IpAddress remoteIP( m_settings.getValueFor( "robotIP" ) );
+    unsigned short dataPort = std::strtoul( m_settings.getValueFor( "robotGraphPort" ).c_str() , NULL , 10 );
 
     sf::Socket::Status status = sf::Socket::Disconnected;
 

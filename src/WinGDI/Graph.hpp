@@ -8,6 +8,7 @@
 #define GRAPH_HPP
 
 #include "Drawable.hpp"
+#include "../Settings.hpp"
 #include <list>
 #include <utility>
 #include <map>
@@ -115,6 +116,8 @@ private:
     void draw( PAINTSTRUCT* ps );
 
     HWND m_window;
+
+    Settings m_settings;
 
     HPEN m_gridPen;
 
