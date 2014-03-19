@@ -89,6 +89,7 @@ COLORREF HSVtoRGB( float h , float s , float v ) {
  *     struct packet_t {
  *         char id;
  *         char graphName[15];
+ *         char padding[8];
  *     }
  *
  *     'd': Asks host to stop sending data set of given name
@@ -454,7 +455,7 @@ void Graph::removeGraph( unsigned int index ) {
 
     // Remove data set
     std::list<DataSet>::iterator set = m_dataSets.begin();
-    for ( unsigned int i = 0 ; i < index ; i++ ) {
+    for ( unsigned int i = 0 ; i < index && set != m_dataSets.end() ; i++ ) {
         set++;
     }
 
@@ -826,7 +827,9 @@ void Graph::graphThreadFunc() {
          */
         DialogBoxParam( GetModuleHandle(NULL) , MAKEINTRESOURCE(IDD_GRAPHSELECTBOX) , m_window , GraphDlgCbk , (LPARAM)m_window );
 
-        // Send updated status on all streams based on the bit array
+        /* Send updated status on streams to which to connect based on the bit
+         * array
+         */
         for ( unsigned int i = 0 ; i < m_graphNamesSize ; i++ ) {
             // If the graph data is requested
             if ( m_curSelect & (1 << i) ) {
@@ -839,7 +842,10 @@ void Graph::graphThreadFunc() {
                 dataSocket.send( &recvData , 16 );
             }
             else {
+                // Tell server to stop sending stream
                 recvData.id = 'd';
+
+                dataSocket.send( &recvData , 16 );
             }
 
             /* Create a graph for each data set requested.
