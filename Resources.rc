@@ -1,0 +1,26 @@
+mainIcon ICON "Spartatroniks.ico"
+
+////////// Properties
+1 VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904E4"
+    BEGIN
+      VALUE "CompanyName", "FRC Team 3512"
+      VALUE "FileVersion", "1,0,0,0"
+      VALUE "InternalName", "LiveGrapher"
+      VALUE "LegalCopyright", "(c) 2013-2015 FRC Team 3512"
+      VALUE "OriginalFilename", "LiveGrapher.exe"
+      VALUE "ProductName", "LiveGrapher"
+      VALUE "ProductVersion", "1.0"
+    END
+  END
+
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1252
+  END
+END

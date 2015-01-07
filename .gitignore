@@ -2,3 +2,12 @@
 *.dll
 *.o
 *.exe
+LiveGrapher
+
+Makefile
+
+# Qt-generated files
+moc_*
+ui_*
+qrc_*
+*.pro.user
