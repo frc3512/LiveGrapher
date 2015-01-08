@@ -84,6 +84,7 @@ DataSet::DataSet( std::list<Pair> n_data , QColor n_color ) {
 }
 
 Graph::Graph( MainWindow* parentWindow ) :
+        QObject(parentWindow),
         m_settings( "IPSettings.txt" ) ,
         m_curSelect( 0 ) ,
         m_graphThread( nullptr ) ,
@@ -237,7 +238,7 @@ void Graph::addData( unsigned int index , const Pair& data ) {
 
     m_dataMutex.unlock();
 
-    m_window->realtimeDataSlot( index , data.first , data.second );
+    emit updateUi( index , data.first , data.second );
 }
 
 void Graph::clearAllData() {

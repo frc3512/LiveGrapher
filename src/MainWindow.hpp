@@ -16,6 +16,9 @@ public:
     explicit MainWindow( QWidget* parent = nullptr );
     ~MainWindow();
 
+signals:
+    bool saveAsCSVSignal();
+
 private slots:
     void saveAsCSV();
     void about();

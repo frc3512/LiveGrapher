@@ -23,6 +23,7 @@
 #include <SFML/Network/IpAddress.hpp>
 #include <SFML/Network/Packet.hpp>
 
+#include <QObject>
 #include <QColor>
 
 typedef std::pair<float , float> Pair;
@@ -91,7 +92,8 @@ struct [[gnu::packed]] packet_list_t {
 class MainWindow;
 class SelectDialog;
 
-class Graph {
+class Graph : public QObject {
+    Q_OBJECT
 public:
     explicit Graph( MainWindow* parentWindow );
     virtual ~Graph();
@@ -111,10 +113,14 @@ public:
     // Remove graph at the given index
     void removeGraph( unsigned int index );
 
+public slots:
     /* Saves all graph data to CSV in the executable's directory
      * returns true upon success
      */
     bool saveAsCSV();
+
+signals:
+    void updateUi( int graphId , float x , float y );
 
 private:
     MainWindow* m_window;
