@@ -1,9 +1,9 @@
-//=============================================================================
-//File Name: Settings.hpp
-//Description: Opens a given file and creates an STL map of its name-value
+// =============================================================================
+// File Name: Settings.hpp
+// Description: Opens a given file and creates an STL map of its name-value
 //             pairs
-//Author: FRC Team 3512, Spartatroniks
-//=============================================================================
+// Author: FRC Team 3512, Spartatroniks
+// =============================================================================
 
 #ifndef SETTINGS_HPP
 #define SETTINGS_HPP
@@ -22,9 +22,19 @@ public:
     /* Returns value associated with the given key
      * Returns "NOT_FOUND" if there is no entry for that name-value pair
      */
-    std::string getValueFor( const std::string& key );
+    std::string getString( const std::string& key ) const;
 
-    // Saves all name-value pairs to an external file with the given name
+    /* Returns value associated with the given key
+     * Returns 0 if there is no entry for that name-value pair
+     */
+    float getFloat( const std::string& key ) const;
+
+    /* Returns value associated with the given key
+     * Returns 0 if there is no entry for that name-value pair
+     */
+    int getInt( const std::string& key ) const;
+
+    // Saves all name-value pairs to external file with the given name
     void saveToFile( const std::string& fileName );
 
 private:
@@ -41,3 +51,4 @@ private:
 };
 
 #endif // SETTINGS_HPP
+

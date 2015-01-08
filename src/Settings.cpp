@@ -1,16 +1,16 @@
-//=============================================================================
-//File Name: Settings.cpp
-//Description: Opens a given file and creates an STL map of its name-value
+// =============================================================================
+// File Name: Settings.cpp
+// Description: Opens a given file and creates an STL map of its name-value
 //             pairs
-//Author: FRC Team 3512, Spartatroniks
-//=============================================================================
+// Author: FRC Team 3512, Spartatroniks
+// =============================================================================
 
 #include "Settings.hpp"
 #include <fstream>
+#include <iostream>
 
-Settings::Settings( std::string fileName ) :
-        m_fileName( fileName ) ,
-        m_index( 0 ) {
+Settings::Settings( std::string fileName ) : m_fileName( fileName ) ,
+                                             m_index( 0 ) {
     update();
 }
 
@@ -25,6 +25,7 @@ void Settings::update() {
 
     std::ifstream settings( m_fileName.c_str() );
     if ( !settings.is_open() ) {
+        std::cout << "Failed to open " << m_fileName << "\n";
         return;
     }
 
@@ -40,13 +41,16 @@ void Settings::update() {
     } while ( !settings.eof() );
 
     settings.close();
+
+    std::cout << "Settings loaded from " << m_fileName << "\n";
 }
 
-std::string Settings::getValueFor( const std::string& key ) {
-    std::map<std::string , std::string>::iterator index = m_values.find( key );
+std::string Settings::getString( const std::string& key ) const {
+    auto index = m_values.find( key );
 
     // If the element wasn't found
     if ( index == m_values.end() ) {
+        std::cout << "Settings Error: '" << key << "' not found\n";
         return "NOT_FOUND";
     }
 
@@ -54,11 +58,38 @@ std::string Settings::getValueFor( const std::string& key ) {
     return index->second;
 }
 
+float Settings::getFloat( const std::string& key ) const {
+    auto index = m_values.find( key );
+
+    // If the element wasn't found
+    if ( index == m_values.end() ) {
+        std::cout << "Settings Error: '" << key << "' not found\n";
+        return 0.f;
+    }
+
+    // Else return the value for that element
+    return atof( index->second.c_str() );
+}
+
+int Settings::getInt( const std::string& key ) const {
+    auto index = m_values.find( key );
+
+    // If the element wasn't found
+    if ( index == m_values.end() ) {
+        std::cout << "Settings Error: '" << key << "' not found\n";
+        return 0;
+    }
+
+    // Else return the value for that element
+    return atoi( index->second.c_str() );
+}
+
 void Settings::saveToFile( const std::string& fileName ) {
-    std::ofstream outFile( fileName.c_str() , std::ios_base::out | std::ios_base::trunc );
+    std::ofstream outFile(
+        fileName.c_str() , std::ios_base::out | std::ios_base::trunc );
     if ( outFile.is_open() ) {
-        for ( std::map<std::string , std::string>::iterator index = m_values.begin() ; index != m_values.end() ; index++ ) {
-            outFile << index->first << " = " << index->second << "\n";
+        for ( auto index : m_values ) {
+            outFile << index.first << " = " << index.second << "\n";
         }
 
         outFile.close();
@@ -70,7 +101,8 @@ std::string Settings::extractDataFromString( const bool& isName ) {
     bool hasEquals = false;
 
     // Find start of name
-    while ( ( m_rawStr[m_index] == ' ' || m_rawStr[m_index] == '\t' ) && m_index < m_rawStr.length() ) {
+    while ( ( m_rawStr[m_index] == ' ' || m_rawStr[m_index] == '\t' ) &&
+            m_index < m_rawStr.length() ) {
         m_index++;
     }
     if ( m_index == m_rawStr.length() ) {
@@ -80,7 +112,8 @@ std::string Settings::extractDataFromString( const bool& isName ) {
     size_t valueStart = m_index;
 
     // Find end of name
-    while ( m_rawStr[m_index] != ' ' && m_rawStr[m_index] != '\t' && m_rawStr[m_index] != '=' && m_index < m_rawStr.length() ) {
+    while ( m_rawStr[m_index] != ' ' && m_rawStr[m_index] != '\t' &&
+            m_rawStr[m_index] != '=' && m_index < m_rawStr.length() ) {
         m_index++;
     }
     if ( m_index == m_rawStr.length() && isName ) {
@@ -96,7 +129,8 @@ std::string Settings::extractDataFromString( const bool& isName ) {
         }
 
         // Find an equals sign if there wasn't already one
-        while ( !hasEquals && m_rawStr[m_index] != '=' && m_index < m_rawStr.length() ) {
+        while ( !hasEquals && m_rawStr[m_index] != '=' &&
+                m_index < m_rawStr.length() ) {
             m_index++;
         }
         if ( m_index == m_rawStr.length() ) {
@@ -111,3 +145,4 @@ std::string Settings::extractDataFromString( const bool& isName ) {
 
     return value;
 }
+

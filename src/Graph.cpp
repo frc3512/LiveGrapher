@@ -111,8 +111,8 @@ void Graph::reconnect() {
     }
     m_isRunning = true;
 
-    remoteIP = sf::IpAddress( m_settings.getValueFor( "robotIP" ) );
-    dataPort = std::strtoul( m_settings.getValueFor( "robotGraphPort" ).c_str() , NULL , 10 );
+    remoteIP = m_settings.getString( "robotIP" );
+    dataPort = m_settings.getInt( "robotGraphPort" );
 
     status = sf::Socket::Disconnected;
 
