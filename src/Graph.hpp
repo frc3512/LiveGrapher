@@ -113,7 +113,6 @@ public:
     // Remove graph at the given index
     void removeGraph( unsigned int index );
 
-public slots:
     /* Saves all graph data to CSV in the executable's directory
      * returns true upon success
      */
