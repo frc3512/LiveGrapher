@@ -116,8 +116,8 @@ void Graph::reconnect() {
 
     status = sf::Socket::Disconnected;
 
-    std::memset( &recvData , sizeof(recvData) , 0 );
-    std::memset( &listData , sizeof(listData) , 0 );
+    std::memset( &recvData , 0 , sizeof(recvData) );
+    std::memset( &listData , 0 ,sizeof(listData) );
 
     sizeRecv = 0;
 
@@ -155,7 +155,7 @@ void Graph::reconnect() {
         while ( m_isRunning && stillRecvList ) {
             if ( threadSelector.wait( sf::milliseconds( 50 ) ) ) {
                 if ( threadSelector.isReady( dataSocket ) ) {
-                    status = dataSocket.receive( &buffer , sizeof(buffer) , sizeRecv );
+                    status = dataSocket.receive( buffer , sizeof(buffer) , sizeRecv );
 
                     if ( status == sf::Socket::Done ) {
                         if ( buffer[0] == 'l' ) {
@@ -189,7 +189,7 @@ void Graph::reconnect() {
          * array
          */
         for ( unsigned int i = 0 ; i < m_graphNamesSize ; i++ ) {
-            std::memset( &recvData , sizeof(recvData) , 0 );
+            std::memset( &recvData , 0 , sizeof(recvData) );
 
             // If the graph data is requested
             if ( m_curSelect & (1 << i) ) {
@@ -229,7 +229,7 @@ void Graph::addData( unsigned int index , const Pair& data ) {
     m_dataMutex.lock();
 
     std::list<DataSet>::iterator set = m_dataSets.begin();
-    for ( unsigned int i = 0 ; i < index ; i++ ) {
+    for ( unsigned int i = 0 ; i < index && set != m_dataSets.end() ; i++ ) {
         set++;
     }
 
@@ -406,11 +406,11 @@ void Graph::graphThreadFunc() {
             while ( m_isRunning ) {
                 if ( threadSelector.wait( sf::milliseconds( 50 ) ) ) {
                     if ( threadSelector.isReady( dataSocket ) ) {
-                        status = dataSocket.receive( &buffer , sizeof(buffer) , sizeRecv );
+                        status = dataSocket.receive( buffer , sizeof(buffer) , sizeRecv );
 
                         if ( status == sf::Socket::Done ) {
                             if ( buffer[0] == 'd' ) {
-                                std::memcpy( &recvData , &buffer , sizeof(buffer) );
+                                std::memcpy( &recvData , buffer , sizeof(buffer) );
 
                                 /* ===== Add sent point to local graph ===== */
                                 // This will only work if ints are the same size as floats
