@@ -32,6 +32,8 @@ MainWindow::MainWindow( QWidget* parent ) :
      * and the UI thread */
     connect(&m_graph, SIGNAL(updateUi(int,float,float)), this, SLOT(realtimeDataSlot(int,float,float)),
             Qt::QueuedConnection);
+    connect(this, SIGNAL(saveAsCSVSignal()), &m_graph, SLOT(saveAsCSV()),
+            Qt::QueuedConnection);
 }
 
 MainWindow::~MainWindow() {
@@ -39,7 +41,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::saveAsCSV() {
-    saveAsCSV();
+    emit saveAsCSVSignal();
     /* m_graph.saveAsCSV(); */
 }
 
