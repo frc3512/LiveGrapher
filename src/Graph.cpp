@@ -228,16 +228,12 @@ void Graph::reconnect() {
 void Graph::addData( unsigned int index , const Pair& data ) {
     m_dataMutex.lock();
 
-    std::list<DataSet>::iterator set = m_dataSets.begin();
-    for ( unsigned int i = 0 ; i < index && set != m_dataSets.end() ; i++ ) {
-        set++;
-    }
-
-    bool noPoints = set->startingPoint == set->data.end();
+    std::list<DataSet>::iterator set = std::next( m_dataSets.begin() , index );
 
     set->data.push_back( data );
 
-    if ( noPoints ) {
+    // If there are no points in the data set
+    if ( set->startingPoint == set->data.end() ) {
         set->startingPoint = set->data.begin();
     }
 
@@ -249,11 +245,11 @@ void Graph::addData( unsigned int index , const Pair& data ) {
 void Graph::clearAllData() {
     m_dataMutex.lock();
 
-    for ( std::list<DataSet>::iterator set = m_dataSets.begin() ; set != m_dataSets.end() ; set++ ) {
-        set->data.clear();
+    for ( auto set : m_dataSets ) {
+        set.data.clear();
 
         // Reset iterator to beginning since no other data can be pointed to
-        set->startingPoint = set->data.begin();
+        set.startingPoint = set.data.begin();
     }
 
     m_dataMutex.unlock();
@@ -293,12 +289,7 @@ void Graph::removeGraph( unsigned int index ) {
     m_dataMutex.lock();
 
     // Remove data set
-    std::list<DataSet>::iterator set = m_dataSets.begin();
-    for ( unsigned int i = 0 ; i < index && set != m_dataSets.end() ; i++ ) {
-        set++;
-    }
-
-    m_dataSets.erase( set );
+    m_dataSets.erase( std::next( m_dataSets.begin() , index ) );
 
     m_dataMutex.unlock();
 
@@ -312,16 +303,6 @@ bool Graph::saveAsCSV() {
     if ( m_dataSets.size() == 0 ) {
         QMessageBox::critical( m_window , QObject::tr("Save Data") , QObject::tr("No graph data to save") );
         return false;
-    }
-
-    std::vector<std::list<Pair>::iterator> points( m_dataSets.size() );
-    std::vector<std::list<Pair>::iterator> ptEnds( m_dataSets.size() );
-
-    size_t i = 0;
-    for ( std::list<DataSet>::iterator sets = m_dataSets.begin() ; sets != m_dataSets.end() ; sets++ ) {
-        points[i] = sets->data.begin();
-        ptEnds[i] = sets->data.end();
-        i++;
     }
 
     /* ===== Create unique name for file ===== */
@@ -349,6 +330,16 @@ bool Graph::saveAsCSV() {
 
     if ( saveFile.is_open() ) {
         m_dataMutex.lock();
+
+        std::vector<std::list<Pair>::iterator> points( m_dataSets.size() );
+        std::vector<std::list<Pair>::iterator> ptEnds( m_dataSets.size() );
+
+        size_t i = 0;
+        for ( auto sets : m_dataSets ) {
+            points[i] = sets.data.begin();
+            ptEnds[i] = sets.data.end();
+            i++;
+        }
 
         size_t setsOpen = points.size();
 
@@ -399,59 +390,49 @@ bool Graph::saveAsCSV() {
 }
 
 void Graph::graphThreadFunc() {
-    try {
-        if ( status == sf::Socket::Done ) {
-            int tmp; // Used for endianness conversions
+    if ( status == sf::Socket::Done ) {
+        int tmp; // Used for endianness conversions
 
-            while ( m_isRunning ) {
-                if ( threadSelector.wait( sf::milliseconds( 50 ) ) ) {
-                    if ( threadSelector.isReady( dataSocket ) ) {
-                        status = dataSocket.receive( buffer , sizeof(buffer) , sizeRecv );
+        while ( m_isRunning ) {
+            if ( threadSelector.wait() ) {
+                if ( threadSelector.isReady( dataSocket ) ) {
+                    status = dataSocket.receive( buffer , sizeof(buffer) , sizeRecv );
 
-                        if ( status == sf::Socket::Done ) {
-                            if ( buffer[0] == 'd' ) {
-                                std::memcpy( &recvData , buffer , sizeof(buffer) );
+                    if ( status == sf::Socket::Done ) {
+                        if ( buffer[0] == 'd' ) {
+                            std::memcpy( &recvData , buffer , sizeof(buffer) );
 
-                                /* ===== Add sent point to local graph ===== */
-                                // This will only work if ints are the same size as floats
-                                static_assert( sizeof(float) == sizeof(uint32_t) , "float isn't 32 bits long" );
+                            /* ===== Add sent point to local graph ===== */
+                            // This will only work if ints are the same size as floats
+                            static_assert( sizeof(float) == sizeof(uint32_t) , "float isn't 32 bits long" );
 
-                                // Convert endianness of x component
-                                std::memcpy( &tmp , &recvData.x , sizeof(recvData.x) );
-                                tmp = ntohl( tmp );
-                                std::memcpy( &recvData.x , &tmp , sizeof(recvData.x) );
+                            // Convert endianness of x component
+                            std::memcpy( &tmp , &recvData.x , sizeof(recvData.x) );
+                            tmp = ntohl( tmp );
+                            std::memcpy( &recvData.x , &tmp , sizeof(recvData.x) );
 
-                                // Convert endianness of y component
-                                std::memcpy( &tmp , &recvData.y , sizeof(recvData.y) );
-                                tmp = ntohl( tmp );
-                                std::memcpy( &recvData.y , &tmp , sizeof(recvData.y) );
+                            // Convert endianness of y component
+                            std::memcpy( &tmp , &recvData.y , sizeof(recvData.y) );
+                            tmp = ntohl( tmp );
+                            std::memcpy( &recvData.y , &tmp , sizeof(recvData.y) );
 
-                                /* Add data to appropriate data set; store point in
-                                 * temps b/c references can't be made of packed
-                                 * (unaligned) struct variables
-                                 */
-                                float x = recvData.x;
-                                float y = recvData.y;
-                                addData( m_graphNamesMap[recvData.graphName] , Pair( x , y ) );
-                                /* ========================================= */
-                            }
-                        }
-                        else {
-                            throw Error::Disconnected;
+                            /* Add data to appropriate data set; store point in
+                             * temps b/c references can't be made of packed
+                             * (unaligned) struct variables
+                             */
+                            float x = recvData.x;
+                            float y = recvData.y;
+                            addData( m_graphNamesMap[recvData.graphName] , Pair( x , y ) );
+                            /* ========================================= */
                         }
                     }
+                    else {
+                        QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+                    }
                 }
-
-                std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
             }
-        }
-    }
-    catch ( Error& exception ) {
-        if ( exception == Error::FailConnect ) {
-            QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
-        }
-        else if ( exception == Error::Disconnected ) {
-            QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+
+            std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
         }
     }
 
