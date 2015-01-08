@@ -27,6 +27,13 @@ MainWindow::MainWindow( QWidget* parent ) :
     qRegisterMetaType<QCPRange>( "QCPRange" );
     connect(customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->xAxis2, SLOT(setRange(QCPRange)));
     connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->yAxis2, SLOT(setRange(QCPRange)));
+
+    /* Bind signals and slots for communication between the graph TCP client thread
+     * and the UI thread */
+    connect(&m_graph, SIGNAL(updateUi(int,float,float)), this, SLOT(realtimeDataSlot(int,float,float)),
+            Qt::QueuedConnection);
+    connect(this, SIGNAL(saveAsCSVSignal()), &m_graph, SLOT(saveAsCSV()),
+            Qt::QueuedConnection);
 }
 
 MainWindow::~MainWindow() {
@@ -34,7 +41,8 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::saveAsCSV() {
-    m_graph.saveAsCSV();
+    emit saveAsCSVSignal();
+    /* m_graph.saveAsCSV(); */
 }
 
 void MainWindow::about() {
