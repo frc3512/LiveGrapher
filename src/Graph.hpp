@@ -122,15 +122,12 @@ private:
     Settings m_settings;
 
     // Contains graph data to plot
-    std::list<DataSet> m_dataSets;
+    std::vector<DataSet> m_dataSets;
 
     std::mutex m_dataMutex;
 
     // Contains names for all graphs available on host
     std::vector<std::string> m_graphNames;
-
-    // Holds number of graph names contained in m_graphHostNames
-    unsigned char m_graphNamesSize;
 
     // Each bit holds receive state of data set (1 = recv, 0 = not recv)
     uint64_t m_curSelect;
@@ -147,7 +144,7 @@ private:
         Disconnected
     };
 
-    sf::SocketSelector threadSelector;
+    sf::SocketSelector dataSelector;
 
     sf::TcpSocket dataSocket;
 

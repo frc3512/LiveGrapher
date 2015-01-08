@@ -12,7 +12,7 @@ class SelectDialog : public QDialog {
      Q_OBJECT
 
  public:
-     SelectDialog( std::vector<std::string>& graphNames , unsigned int graphNamesSize , Graph* graphData , QWidget* parent = nullptr );
+     SelectDialog( std::vector<std::string>& graphNames , Graph* graphData , QWidget* parent = nullptr );
 
  private slots:
      void selectGraph( int val );

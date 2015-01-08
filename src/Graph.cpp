@@ -85,12 +85,12 @@ DataSet::DataSet( std::list<Pair> n_data , QColor n_color ) {
 
 Graph::Graph( MainWindow* parentWindow ) :
         m_settings( "IPSettings.txt" ) ,
-        m_graphNames( 64 ) ,
-        m_graphNamesSize( 0 ) ,
         m_curSelect( 0 ) ,
         m_graphThread( nullptr ) ,
         m_isRunning( true ) {
     m_window = parentWindow;
+    m_dataSets.reserve( 64 );
+    m_graphNames.reserve( 64 );
 }
 
 Graph::~Graph() {
@@ -132,7 +132,7 @@ void Graph::reconnect() {
             throw Error::FailConnect;
         }
 
-        threadSelector.add( dataSocket );
+        dataSelector.add( dataSocket );
 
         // Request list of all data sets on remote host
         recvData.id = 'l';
@@ -145,7 +145,7 @@ void Graph::reconnect() {
         } while ( m_isRunning && status != sf::Socket::Done );
 
         // Clear m_graphNames before refilling it
-        m_graphNamesSize = 0;
+        m_graphNames.clear();
         m_graphNamesMap.clear();
 
         unsigned int i = 0;
@@ -153,15 +153,15 @@ void Graph::reconnect() {
         // Get list of available data sets from host and store them in a map
         bool stillRecvList = true;
         while ( m_isRunning && stillRecvList ) {
-            if ( threadSelector.wait( sf::milliseconds( 50 ) ) ) {
-                if ( threadSelector.isReady( dataSocket ) ) {
+            if ( dataSelector.wait( sf::milliseconds( 10 ) ) ) {
+                if ( dataSelector.isReady( dataSocket ) ) {
                     status = dataSocket.receive( buffer , sizeof(buffer) , sizeRecv );
 
                     if ( status == sf::Socket::Done ) {
                         if ( buffer[0] == 'l' ) {
                             std::memcpy( &listData , buffer , sizeof(buffer) );
 
-                            m_graphNames[i] = listData.graphName;
+                            m_graphNames.push_back( listData.graphName );
                             m_graphNamesMap[listData.graphName] = i;
 
                             i++;
@@ -179,16 +179,14 @@ void Graph::reconnect() {
             }
         }
 
-        m_graphNamesSize = i;
-
         // Allow user to select which data sets to receive
-        SelectDialog* dialog = new SelectDialog( m_graphNames , m_graphNamesSize , this , m_window );
+        SelectDialog* dialog = new SelectDialog( m_graphNames , this , m_window );
         dialog->exec();
 
         /* Send updated status on streams to which to connect based on the bit
          * array
          */
-        for ( unsigned int i = 0 ; i < m_graphNamesSize ; i++ ) {
+        for ( unsigned int i = 0 ; i < m_graphNames.size() ; i++ ) {
             std::memset( &recvData , 0 , sizeof(recvData) );
 
             // If the graph data is requested
@@ -228,13 +226,13 @@ void Graph::reconnect() {
 void Graph::addData( unsigned int index , const Pair& data ) {
     m_dataMutex.lock();
 
-    std::list<DataSet>::iterator set = std::next( m_dataSets.begin() , index );
-
-    set->data.push_back( data );
+    auto& set = m_dataSets[index];
+    set.data.push_back( data );
+    set.data.push_back( data );
 
     // If there are no points in the data set
-    if ( set->startingPoint == set->data.end() ) {
-        set->startingPoint = set->data.begin();
+    if ( set.startingPoint == set.data.end() ) {
+        set.startingPoint = set.data.begin();
     }
 
     m_dataMutex.unlock();
@@ -289,7 +287,7 @@ void Graph::removeGraph( unsigned int index ) {
     m_dataMutex.lock();
 
     // Remove data set
-    m_dataSets.erase( std::next( m_dataSets.begin() , index ) );
+    m_dataSets.erase( m_dataSets.begin() + index );
 
     m_dataMutex.unlock();
 
@@ -394,8 +392,8 @@ void Graph::graphThreadFunc() {
         int tmp; // Used for endianness conversions
 
         while ( m_isRunning ) {
-            if ( threadSelector.wait() ) {
-                if ( threadSelector.isReady( dataSocket ) ) {
+            if ( dataSelector.wait() ) {
+                if ( dataSelector.isReady( dataSocket ) ) {
                     status = dataSocket.receive( buffer , sizeof(buffer) , sizeRecv );
 
                     if ( status == sf::Socket::Done ) {
