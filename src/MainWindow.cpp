@@ -16,9 +16,8 @@ MainWindow::MainWindow( QWidget* parent ) :
 
     QCustomPlot* customPlot = m_ui->plot;
 
-    //customPlot->xAxis->setTickLabelType(QCPAxis::ltNumber);
-    customPlot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
-    customPlot->xAxis->setDateTimeFormat("mm:ss");
+    customPlot->xAxis->setTickLabelType( QCPAxis::ltDateTime );
+    customPlot->xAxis->setDateTimeFormat( "mm:ss" );
     customPlot->xAxis->setAutoTickStep( false );
     customPlot->xAxis->setTickStep( 1 );
     customPlot->axisRect()->setupFullAxesBox();

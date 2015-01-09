@@ -77,12 +77,6 @@ QColor HSVtoRGB( float h , float s , float v ) {
     return QColor( r * 255 , g * 255 , b * 255 );
 }
 
-DataSet::DataSet( std::list<Pair> n_data , QColor n_color ) {
-    data = n_data;
-    color = n_color;
-    startingPoint = data.begin();
-}
-
 Graph::Graph( MainWindow* parentWindow ) :
         QObject(parentWindow),
         m_settings( "IPSettings.txt" ) ,
@@ -226,16 +220,7 @@ void Graph::reconnect() {
 
 void Graph::addData( unsigned int index , const Pair& data ) {
     m_dataMutex.lock();
-
-    auto& set = m_dataSets[index];
-    set.data.push_back( data );
-    set.data.push_back( data );
-
-    // If there are no points in the data set
-    if ( set.startingPoint == set.data.end() ) {
-        set.startingPoint = set.data.begin();
-    }
-
+    m_dataSets[index].push_back( data );
     m_dataMutex.unlock();
 
     emit updateUi( index , data.first , data.second );
@@ -245,10 +230,7 @@ void Graph::clearAllData() {
     m_dataMutex.lock();
 
     for ( auto set : m_dataSets ) {
-        set.data.clear();
-
-        // Reset iterator to beginning since no other data can be pointed to
-        set.startingPoint = set.data.begin();
+        set.clear();
     }
 
     m_dataMutex.unlock();
@@ -263,16 +245,6 @@ void Graph::clearAllData() {
 }
 
 void Graph::createGraph( QColor color ) {
-    m_dataMutex.lock();
-
-    /* TODO Make list with no points; it's necessary now b/c start iterators
-     * need a valid starting pt
-     */
-    std::list<Pair> data = { std::make_pair( 0.f , 0.f ) };
-    m_dataSets.push_back( DataSet( data , color ) );
-
-    m_dataMutex.unlock();
-
     m_window->m_uiMutex.lock();
 
     unsigned int i = m_dataSets.size() - 1;
@@ -330,42 +302,36 @@ bool Graph::saveAsCSV() {
     if ( saveFile.is_open() ) {
         m_dataMutex.lock();
 
-        std::vector<std::list<Pair>::iterator> points( m_dataSets.size() );
-        std::vector<std::list<Pair>::iterator> ptEnds( m_dataSets.size() );
+        std::vector<std::list<Pair>::iterator> sets( m_dataSets.size() );
 
-        size_t i = 0;
-        for ( auto sets : m_dataSets ) {
-            points[i] = sets.data.begin();
-            ptEnds[i] = sets.data.end();
-            i++;
+        for ( unsigned int i = 0 ; i < m_dataSets.size() ; i++ ) {
+            sets[i] = m_dataSets[i].begin();
         }
 
-        size_t setsOpen = points.size();
+        size_t setsOpen = m_dataSets.size();
 
-        // While there is still data in at least one DataSet to add to the file
+        // While there is still data in at least one data set to add to the file
         while ( setsOpen > 0 ) {
-            setsOpen = points.size();
+            setsOpen = m_dataSets.size();
 
-            for ( size_t j = 0 ; j < points.size() ; j++ ) {
-                // If there are still points in this DataSet to add
-                if ( points[j] != ptEnds[j] ) {
-                    saveFile << points[j]->first << "," << points[j]->second;
+            for ( size_t j = 0 ; j < m_dataSets.size() ; j++ ) {
+                // If there are still points in this data set to add
+                if ( sets[j] != m_dataSets[j].end() ) {
+                    saveFile << sets[j]->first << "," << sets[j]->second;
 
-                    // Increment to next point
-                    points[j]++;
+                    // Increment to next point in data set
+                    sets[j]++;
                 }
+                // Data set has reached invalid point after incrementing
                 else {
                     // Add a filler comma
                     saveFile << ",";
-                }
 
-                // If DataSet reached invalid point after incrementing
-                if ( points[j] == ptEnds[j] ) {
                     setsOpen--;
                 }
 
                 // Only add another comma if there is more data to add
-                if ( j < points.size() - 1 ) {
+                if ( j < m_dataSets.size() - 1 ) {
                     saveFile << ",";
                 }
             }

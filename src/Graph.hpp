@@ -27,14 +27,7 @@
 #include <QColor>
 
 typedef std::pair<float , float> Pair;
-
-struct DataSet {
-    DataSet( std::list<Pair> n_data , QColor n_color );
-
-    std::list<Pair> data;
-    std::list<Pair>::iterator startingPoint;
-    QColor color;
-};
+typedef std::list<Pair> DataSet;
 
 /* Graph Packet Structure
  *
