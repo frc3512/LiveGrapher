@@ -245,11 +245,16 @@ void Graph::clearAllData() {
 }
 
 void Graph::createGraph( QColor color ) {
+    m_dataMutex.lock();
+    m_dataSets.push_back( DataSet() );
+    m_dataMutex.unlock();
+
     m_window->m_uiMutex.lock();
 
-    unsigned int i = m_dataSets.size() - 1;
     QCustomPlot* customPlot = m_window->m_ui->plot;
     customPlot->addGraph();
+
+    unsigned int i = customPlot->graphCount() - 1;
     customPlot->graph( i )->setPen( QPen(color) );
     customPlot->graph( i )->setAntialiasedFill( false );
 
