@@ -16,11 +16,11 @@ public:
     explicit MainWindow( QWidget* parent = nullptr );
     ~MainWindow();
 
-signals:
-    bool saveAsCSVSignal();
+public slots:
+    void infoDialog( const QString& title , const QString& text );
+    void criticalDialog( const QString& title , const QString& text );
 
 private slots:
-    void saveAsCSV();
     void about();
     void reconnect();
     void clearAllData();
@@ -31,6 +31,9 @@ private:
     std::mutex m_uiMutex;
 
     Graph m_graph;
+
+    Settings m_settings;
+    float m_xHistory;
 
     friend class Graph;
 };

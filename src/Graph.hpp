@@ -101,7 +101,7 @@ public:
     void clearAllData();
 
     // Create another set of data to graph
-    void createGraph( QColor color );
+    void createGraph( const std::string& name , QColor color );
 
     // Remove graph at the given index
     void removeGraph( unsigned int index );
@@ -113,7 +113,9 @@ public slots:
     bool saveAsCSV();
 
 signals:
-    void updateUi( int graphId , float x , float y );
+    void realtimeDataSignal( int graphId , float x , float y );
+    void infoDialogSignal( const QString& , const QString& );
+    void criticalDialogSignal( const QString& , const QString& );
 
 private:
     MainWindow* m_window;

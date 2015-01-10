@@ -106,6 +106,10 @@ void Graph::reconnect() {
     }
     m_isRunning = true;
 
+    while ( m_dataSets.size() > 0 ) {
+        removeGraph( m_dataSets.size() - 1 );
+    }
+
     remoteIP = m_settings.getString( "robotIP" );
     dataPort = m_settings.getInt( "robotGraphPort" );
 
@@ -203,15 +207,16 @@ void Graph::reconnect() {
              * around 360 degrees, V is decremented by 0.25. S is always 1.
              * This algorithm gives 25 possible values, one being black.
              */
-            createGraph( HSVtoRGB( 60 * i % 360 , 1 , 1 - 0.25 * std::floor( i / 6 ) ) );
+            constexpr unsigned int parts = 3;
+            createGraph( m_graphNames[i] , HSVtoRGB( 360 / parts * i % 360 , 1 , 1 - 0.25 * std::floor( i / parts ) ) );
         }
     }
     catch ( Error& exception ) {
         if ( exception == Error::FailConnect ) {
-            QMessageBox::critical( nullptr , QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
+            emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
         }
         else if ( exception == Error::Disconnected ) {
-            QMessageBox::critical( nullptr , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+            emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
         }
     }
 
@@ -223,7 +228,7 @@ void Graph::addData( unsigned int index , const Pair& data ) {
     m_dataSets[index].push_back( data );
     m_dataMutex.unlock();
 
-    emit updateUi( index , data.first , data.second );
+    emit realtimeDataSignal( index , data.first , data.second );
 }
 
 void Graph::clearAllData() {
@@ -244,7 +249,7 @@ void Graph::clearAllData() {
     m_window->m_uiMutex.unlock();
 }
 
-void Graph::createGraph( QColor color ) {
+void Graph::createGraph( const std::string& name , QColor color ) {
     m_dataMutex.lock();
     m_dataSets.push_back( DataSet() );
     m_dataMutex.unlock();
@@ -253,10 +258,9 @@ void Graph::createGraph( QColor color ) {
 
     QCustomPlot* customPlot = m_window->m_ui->plot;
     customPlot->addGraph();
-
-    unsigned int i = customPlot->graphCount() - 1;
-    customPlot->graph( i )->setPen( QPen(color) );
-    customPlot->graph( i )->setAntialiasedFill( false );
+    customPlot->graph()->setName( QString::fromUtf8(name.c_str()) );
+    customPlot->graph()->setPen( QPen(color) );
+    customPlot->graph()->setAntialiasedFill( false );
 
     m_window->m_uiMutex.unlock();
 }
@@ -277,7 +281,7 @@ void Graph::removeGraph( unsigned int index ) {
 bool Graph::saveAsCSV() {
     // There isn't any point in creating a file with no data in it
     if ( m_dataSets.size() == 0 ) {
-        QMessageBox::critical( m_window , QObject::tr("Save Data") , QObject::tr("No graph data to save") );
+        emit criticalDialogSignal( QObject::tr("Save Data") , QObject::tr("No graph data to save") );
         return false;
     }
 
@@ -350,11 +354,11 @@ bool Graph::saveAsCSV() {
 
         saveFile.close();
 
-        QMessageBox::information( m_window , QObject::tr("Save Data") , QObject::tr("Successfully saved graph data to file") );
+        emit infoDialogSignal( QObject::tr("Save Data") , QObject::tr("Successfully saved graph data to file") );
         return true;
     }
     else {
-        QMessageBox::critical( m_window , QObject::tr("Save Data") , QObject::tr("Failed to save graph data to file") );
+        emit criticalDialogSignal( QObject::tr("Save Data") , QObject::tr("Failed to save graph data to file") );
         return false;
     }
 }
@@ -396,8 +400,10 @@ void Graph::graphThreadFunc() {
                             /* ========================================= */
                         }
                     }
-                    else {
-                        QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+                    else if ( status != sf::Socket::NotReady ) {
+                        emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+                        dataSocket.disconnect();
+                        m_isRunning = false;
                     }
                 }
             }

@@ -4,15 +4,16 @@
 MainWindow::MainWindow( QWidget* parent ) :
     QMainWindow( parent ) ,
     m_ui( new Ui::MainWindow ) ,
-    m_graph( this )
+    m_graph( this ) ,
+    m_settings( "IPSettings.txt" )
 {
     m_ui->setupUi( this );
 
-    connect( m_ui->actionSave_As_CSV , SIGNAL(triggered()) , this , SLOT(saveAsCSV()) );
+    connect( m_ui->actionSave_As_CSV , SIGNAL(triggered()) , &m_graph , SLOT(saveAsCSV()) );
     connect( m_ui->actionAbout , SIGNAL(triggered()) , this , SLOT(about()) );
     connect( m_ui->connectButton , SIGNAL(released()) , this , SLOT(reconnect()) );
     connect( m_ui->clearDataButton , SIGNAL(released()) , this , SLOT(clearAllData()) );
-    connect( m_ui->saveButton , SIGNAL(released()) , this , SLOT(saveAsCSV()) );
+    connect( m_ui->saveButton , SIGNAL(released()) , &m_graph , SLOT(saveAsCSV()) );
 
     QCustomPlot* customPlot = m_ui->plot;
 
@@ -21,6 +22,7 @@ MainWindow::MainWindow( QWidget* parent ) :
     customPlot->xAxis->setAutoTickStep( false );
     customPlot->xAxis->setTickStep( 1 );
     customPlot->axisRect()->setupFullAxesBox();
+    customPlot->legend->setVisible( true );
 
     // make left and bottom axes transfer their ranges to right and top axes:
     qRegisterMetaType<QCPRange>( "QCPRange" );
@@ -29,19 +31,26 @@ MainWindow::MainWindow( QWidget* parent ) :
 
     /* Bind signals and slots for communication between the graph TCP client thread
      * and the UI thread */
-    connect(&m_graph, SIGNAL(updateUi(int,float,float)), this, SLOT(realtimeDataSlot(int,float,float)),
+    connect(&m_graph, SIGNAL(realtimeDataSignal(int,float,float)), this, SLOT(realtimeDataSlot(int,float,float)),
+            Qt::BlockingQueuedConnection);
+    connect(&m_graph, SIGNAL(infoDialogSignal(const QString&,const QString&)), this, SLOT(infoDialog(const QString&,const QString&)),
             Qt::QueuedConnection);
-    connect(this, SIGNAL(saveAsCSVSignal()), &m_graph, SLOT(saveAsCSV()),
+    connect(&m_graph, SIGNAL(criticalDialogSignal(const QString&,const QString&)), this, SLOT(criticalDialog(const QString&,const QString&)),
             Qt::QueuedConnection);
+
+    m_xHistory = m_settings.getFloat( "xHistory" );
 }
 
 MainWindow::~MainWindow() {
     delete m_ui;
 }
 
-void MainWindow::saveAsCSV() {
-    emit saveAsCSVSignal();
-    /* m_graph.saveAsCSV(); */
+void MainWindow::infoDialog( const QString& title , const QString& text ) {
+    QMessageBox::information( this , title , text );
+}
+
+void MainWindow::criticalDialog( const QString& title , const QString& text ) {
+    QMessageBox::critical( this , title , text );
 }
 
 void MainWindow::about() {
@@ -68,7 +77,7 @@ void MainWindow::realtimeDataSlot( int graphId , float x , float y ) {
 
     // Remove data of lines that are outside visible range
     for ( int i = 0 ; i < m_ui->plot->graphCount() ; i++ ) {
-        m_ui->plot->graph( i )->removeDataBefore( x - 4.5 );
+        m_ui->plot->graph( i )->removeDataBefore( x - m_xHistory );
     }
 
     // Rescale value (vertical) axis to fit the current data
@@ -80,8 +89,8 @@ void MainWindow::realtimeDataSlot( int graphId , float x , float y ) {
         }
     }
 
-    // Make key axis range scroll with the data (at a constant range size of 8)
-    m_ui->plot->xAxis->setRange( x + 0.25 , 4.5 , Qt::AlignRight );
+    // Make key axis range scroll with the data (at a constant range size)
+    m_ui->plot->xAxis->setRange( x , m_xHistory , Qt::AlignRight );
     m_ui->plot->replot();
 
     m_uiMutex.unlock();
