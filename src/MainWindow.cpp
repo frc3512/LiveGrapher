@@ -21,6 +21,8 @@ MainWindow::MainWindow( QWidget* parent ) :
     customPlot->xAxis->setDateTimeFormat( "mm:ss" );
     customPlot->xAxis->setAutoTickStep( false );
     customPlot->xAxis->setTickStep( 1 );
+    customPlot->xAxis->setLabel( "Time (s)" );
+    customPlot->yAxis->setLabel( "Data" );
     customPlot->axisRect()->setupFullAxesBox();
     customPlot->legend->setVisible( true );
 
