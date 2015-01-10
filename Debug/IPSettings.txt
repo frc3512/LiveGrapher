@@ -1,14 +1,8 @@
 #LiveGrapher sends to this
-robotIP           = 10.1.0.100
+robotIP           = 127.0.0.1
 robotGraphPort    = 3513
-
-xMin              = 0
-yMin              = 0
 
 xMax              = 0
 yMax              = 100
 
-xScale            = 100
-yScale            = 200
-
-xHistory          = 4500
+xHistory          = 4.5
