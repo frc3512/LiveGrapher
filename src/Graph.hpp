@@ -9,22 +9,16 @@
 
 #include "Settings.hpp"
 #include <list>
-#include <utility>
 #include <map>
 #include <vector>
 #include <string>
-#include <atomic>
-#include <thread>
 #include <mutex>
 #include <cstdint>
 
-#include <SFML/Network/SocketSelector.hpp>
-#include <SFML/Network/TcpSocket.hpp>
-#include <SFML/Network/IpAddress.hpp>
-#include <SFML/Network/Packet.hpp>
-
 #include <QObject>
 #include <QColor>
+#include <QTcpSocket>
+#include <QHostAddress>
 
 typedef std::pair<float , float> Pair;
 typedef std::list<Pair> DataSet;
@@ -117,6 +111,11 @@ signals:
     void infoDialogSignal( const QString& , const QString& );
     void criticalDialogSignal( const QString& , const QString& );
 
+private slots:
+    void handleSocketData();
+    void sendGraphChoices();
+    void handleStateChange( QAbstractSocket::SocketState state );
+
 private:
     MainWindow* m_window;
 
@@ -136,28 +135,19 @@ private:
     // Provides way to get a data set's index given the name
     std::map<std::string , unsigned char> m_graphNamesMap;
 
-    std::thread* m_graphThread;
-    std::atomic<bool> m_isRunning;
-    void graphThreadFunc();
-
     enum Error {
         FailConnect = 0,
         Disconnected
     };
 
-    sf::SocketSelector dataSelector;
+    QTcpSocket m_dataSocket;
 
-    sf::TcpSocket dataSocket;
+    QHostAddress m_remoteIP;
+    unsigned short m_dataPort;
 
-    sf::IpAddress remoteIP;
-    unsigned short dataPort;
-
-    sf::Socket::Status status;
-
-    char buffer[24];
-    struct packet_t recvData;
-    struct packet_list_t listData;
-    size_t sizeRecv;
+    char m_buffer[24];
+    struct packet_t m_recvData;
+    struct packet_list_t m_listData;
 
     friend class SelectDialog;
 };

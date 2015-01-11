@@ -4,6 +4,7 @@
 //Author: FRC Team 3512, Spartatroniks
 //=============================================================================
 
+#include <iostream>
 #include <fstream>
 
 #include <cmath>
@@ -81,135 +82,63 @@ Graph::Graph( MainWindow* parentWindow ) :
         QObject(parentWindow),
         m_settings( "IPSettings.txt" ) ,
         m_curSelect( 0 ) ,
-        m_graphThread( nullptr ) ,
-        m_isRunning( true ) {
+        m_dataSocket( this ) {
     m_window = parentWindow;
     m_dataSets.reserve( 64 );
     m_graphNames.reserve( 64 );
+
+    connect( &m_dataSocket , SIGNAL(readyRead()) , this , SLOT(handleSocketData()) ,
+            Qt::QueuedConnection );
+    connect( &m_dataSocket , SIGNAL(stateChanged(QAbstractSocket::SocketState)) ,
+            this , SLOT(handleStateChange(QAbstractSocket::SocketState)) );
 }
 
 Graph::~Graph() {
-    // Wait for graph data reception thread to exit
-    m_isRunning = false;
-    if ( m_graphThread != nullptr ) {
-        m_graphThread->join();
-        delete m_graphThread;
-    }
+    m_dataSocket.disconnect();
 }
 
 void Graph::reconnect() {
-    m_isRunning = false;
-    if ( m_graphThread != nullptr ) {
-        m_graphThread->join();
-        delete m_graphThread;
-        m_graphThread = nullptr;
-    }
-    m_isRunning = true;
+    m_dataSocket.disconnect();
 
     while ( m_dataSets.size() > 0 ) {
         removeGraph( m_dataSets.size() - 1 );
     }
 
-    remoteIP = m_settings.getString( "robotIP" );
-    dataPort = m_settings.getInt( "robotGraphPort" );
+    m_remoteIP = QString::fromUtf8( m_settings.getString( "robotIP" ).c_str() );
+    m_dataPort = m_settings.getInt( "robotGraphPort" );
 
-    status = sf::Socket::Disconnected;
-
-    std::memset( &recvData , 0 , sizeof(recvData) );
-    std::memset( &listData , 0 ,sizeof(listData) );
-
-    sizeRecv = 0;
+    std::memset( &m_recvData , 0 , sizeof(m_recvData) );
+    std::memset( &m_listData , 0 ,sizeof(m_listData) );
 
     // Reset list of data set recv statuses
     m_curSelect = 0;
 
     try {
         // Attempt connection to remote data set host
-        status = dataSocket.connect( remoteIP , dataPort , sf::milliseconds( 1000 ) );
+        //m_dataSocket.connectToHost( m_remoteIP , m_dataPort );
+        m_dataSocket.connectToHost("127.0.0.1",1023);
 
-        if ( status != sf::Socket::Done ) {
+        if ( !m_dataSocket.isValid() ) {
             throw Error::FailConnect;
         }
 
-        dataSelector.add( dataSocket );
-
         // Request list of all data sets on remote host
-        recvData.id = 'l';
-        do {
-            status = dataSocket.send( &recvData , 16 );
-
-            if ( status == sf::Socket::Disconnected ) {
+        m_recvData.id = 'l';
+        int64_t count = 0;
+        int64_t sent = 0;
+        while ( count < 16 ) {
+            sent = m_dataSocket.write( reinterpret_cast<char*>(&m_recvData) , 16 );
+            if ( !m_dataSocket.isValid() || sent < 0 ) {
                 throw Error::Disconnected;
             }
-        } while ( m_isRunning && status != sf::Socket::Done );
+            else {
+                count += sent;
+            }
+        }
 
         // Clear m_graphNames before refilling it
         m_graphNames.clear();
         m_graphNamesMap.clear();
-
-        unsigned int i = 0;
-
-        // Get list of available data sets from host and store them in a map
-        bool stillRecvList = true;
-        while ( m_isRunning && stillRecvList ) {
-            if ( dataSelector.wait( sf::milliseconds( 10 ) ) ) {
-                if ( dataSelector.isReady( dataSocket ) ) {
-                    status = dataSocket.receive( buffer , sizeof(buffer) , sizeRecv );
-
-                    if ( status == sf::Socket::Done ) {
-                        if ( buffer[0] == 'l' ) {
-                            std::memcpy( &listData , buffer , sizeof(buffer) );
-
-                            m_graphNames.push_back( listData.graphName );
-                            m_graphNamesMap[listData.graphName] = i;
-
-                            i++;
-
-                            // If that was the last name, exit the recv loop
-                            if ( listData.eof == 1 ) {
-                                stillRecvList = false;
-                            }
-                        }
-                    }
-                }
-            }
-            else if ( status == sf::Socket::Disconnected ) {
-                throw Error::Disconnected;
-            }
-        }
-
-        // Allow user to select which data sets to receive
-        SelectDialog* dialog = new SelectDialog( m_graphNames , this , m_window );
-        dialog->exec();
-
-        /* Send updated status on streams to which to connect based on the bit
-         * array
-         */
-        for ( unsigned int i = 0 ; i < m_graphNames.size() ; i++ ) {
-            std::memset( &recvData , 0 , sizeof(recvData) );
-
-            // If the graph data is requested
-            if ( m_curSelect & (1 << i) ) {
-                recvData.id = 'c';
-            }
-            else {
-                // Tell server to stop sending stream
-                recvData.id = 'd';
-            }
-
-            // Store name of data set to buffer
-            std::strcpy( recvData.graphName , m_graphNames[i].c_str() );
-
-            dataSocket.send( &recvData , 16 );
-
-            /* Create a graph for each data set requested.
-             * V starts out at 1. H cycles through six colors. When it wraps
-             * around 360 degrees, V is decremented by 0.25. S is always 1.
-             * This algorithm gives 25 possible values, one being black.
-             */
-            constexpr unsigned int parts = 3;
-            createGraph( m_graphNames[i] , HSVtoRGB( 360 / parts * i % 360 , 1 , 1 - 0.25 * std::floor( i / parts ) ) );
-        }
     }
     catch ( Error& exception ) {
         if ( exception == Error::FailConnect ) {
@@ -219,8 +148,6 @@ void Graph::reconnect() {
             emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
         }
     }
-
-    m_graphThread = new std::thread( [this] { Graph::graphThreadFunc(); } );
 }
 
 void Graph::addData( unsigned int index , const Pair& data ) {
@@ -363,54 +290,124 @@ bool Graph::saveAsCSV() {
     }
 }
 
-void Graph::graphThreadFunc() {
-    if ( status == sf::Socket::Done ) {
-        int tmp; // Used for endianness conversions
+void Graph::handleSocketData() {
+    printf( "socket data\n" );
 
-        while ( m_isRunning ) {
-            if ( dataSelector.wait() ) {
-                if ( dataSelector.isReady( dataSocket ) ) {
-                    status = dataSocket.receive( buffer , sizeof(buffer) , sizeRecv );
+    if ( m_dataSocket.bytesAvailable() < static_cast<int>(sizeof(m_buffer)) ) {
+        return;
+    }
 
-                    if ( status == sf::Socket::Done ) {
-                        if ( buffer[0] == 'd' ) {
-                            std::memcpy( &recvData , buffer , sizeof(buffer) );
-
-                            /* ===== Add sent point to local graph ===== */
-                            // This will only work if ints are the same size as floats
-                            static_assert( sizeof(float) == sizeof(uint32_t) , "float isn't 32 bits long" );
-
-                            // Convert endianness of x component
-                            std::memcpy( &tmp , &recvData.x , sizeof(recvData.x) );
-                            tmp = ntohl( tmp );
-                            std::memcpy( &recvData.x , &tmp , sizeof(recvData.x) );
-
-                            // Convert endianness of y component
-                            std::memcpy( &tmp , &recvData.y , sizeof(recvData.y) );
-                            tmp = ntohl( tmp );
-                            std::memcpy( &recvData.y , &tmp , sizeof(recvData.y) );
-
-                            /* Add data to appropriate data set; store point in
-                             * temps b/c references can't be made of packed
-                             * (unaligned) struct variables
-                             */
-                            float x = recvData.x;
-                            float y = recvData.y;
-                            addData( m_graphNamesMap[recvData.graphName] , Pair( x , y ) );
-                            /* ========================================= */
-                        }
-                    }
-                    else if ( status != sf::Socket::NotReady ) {
-                        emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
-                        dataSocket.disconnect();
-                        m_isRunning = false;
-                    }
-                }
-            }
-
-            std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
+    uint64_t count = 0;
+    int64_t received = 0;
+    while ( count < sizeof(m_buffer) ) {
+        received = m_dataSocket.read( m_buffer , sizeof(m_buffer) );
+        if ( !m_dataSocket.isValid() || received < 0 ) {
+            emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+            m_dataSocket.disconnect();
+            return;
+        }
+        else {
+            count += received;
         }
     }
 
-    dataSocket.disconnect();
+    if ( m_buffer[0] == 'd' ) {
+        std::memcpy( &m_recvData , m_buffer , sizeof(m_buffer) );
+
+        /* ===== Add sent point to local graph ===== */
+        // This will only work if ints are the same size as floats
+        static_assert( sizeof(float) == sizeof(uint32_t) , "float isn't 32 bits long" );
+
+        // Used for endianness conversions
+        uint32_t tmp;
+
+        // Convert endianness of x component
+        std::memcpy( &tmp , &m_recvData.x , sizeof(m_recvData.x) );
+        tmp = ntohl( tmp );
+        std::memcpy( &m_recvData.x , &tmp , sizeof(m_recvData.x) );
+
+        // Convert endianness of y component
+        std::memcpy( &tmp , &m_recvData.y , sizeof(m_recvData.y) );
+        tmp = ntohl( tmp );
+        std::memcpy( &m_recvData.y , &tmp , sizeof(m_recvData.y) );
+
+        /* Add data to appropriate data set; store point in
+         * temps b/c references can't be made of packed
+         * (unaligned) struct variables
+         */
+        float x = m_recvData.x;
+        float y = m_recvData.y;
+        addData( m_graphNamesMap[m_recvData.graphName] , Pair( x , y ) );
+        /* ========================================= */
+    }
+    else if ( m_buffer[0] == 'l' ) {
+        std::memcpy( &m_listData , m_buffer , sizeof(m_buffer) );
+
+        m_graphNames.push_back( m_listData.graphName );
+        m_graphNamesMap[m_listData.graphName] = m_graphNames.size() - 1;
+
+        // If that was the last name, exit the recv loop
+        if ( m_listData.eof == 1 ) {
+            // Allow user to select which data sets to receive
+            SelectDialog* dialog = new SelectDialog( m_graphNames , this , m_window );
+            connect( dialog , SIGNAL(finished(int)) , this , SLOT(sendGraphChoices()) );
+            dialog->exec();
+        }
+    }
+}
+
+void Graph::sendGraphChoices() {
+    /* Send updated status on streams to which to connect based on the bit
+     * array
+     */
+    for ( unsigned int i = 0 ; i < m_graphNames.size() ; i++ ) {
+        std::memset( &m_recvData , 0 , sizeof(m_recvData) );
+
+        // If the graph data is requested
+        if ( m_curSelect & (1 << i) ) {
+            m_recvData.id = 'c';
+        }
+        else {
+            // Tell server to stop sending stream
+            m_recvData.id = 'd';
+        }
+
+        // Store name of data set to buffer
+        std::strcpy( m_recvData.graphName , m_graphNames[i].c_str() );
+
+        uint64_t count = 0;
+        int64_t sent = 0;
+        while ( count < 16 ) {
+            sent = m_dataSocket.write( reinterpret_cast<char*>(&m_recvData) , 16 );
+            if ( !m_dataSocket.isValid() || sent < 0 ) {
+                throw Error::Disconnected;
+            }
+            else {
+                count += sent;
+            }
+        }
+
+        /* Create a graph for each data set requested.
+         * V starts out at 1. H cycles through six colors. When it wraps
+         * around 360 degrees, V is decremented by 0.25. S is always 1.
+         * This algorithm gives 25 possible values, one being black.
+         */
+        constexpr unsigned int parts = 3;
+        createGraph( m_graphNames[i] , HSVtoRGB( 360 / parts * i % 360 , 1 , 1 - 0.25 * std::floor( i / parts ) ) );
+    }
+}
+
+void Graph::handleStateChange( QAbstractSocket::SocketState state ) {
+    if ( state == QAbstractSocket::SocketState::UnconnectedState ) {
+        emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
+    }
+    else if ( state == QAbstractSocket::SocketState::ConnectingState ) {
+        printf( "Connecting...\n" );
+    }
+    else if ( state == QAbstractSocket::SocketState::ConnectedState ) {
+        printf( "Connected\n" );
+    }
+    else if ( state == QAbstractSocket::SocketState::ClosingState ) {
+        printf( "Closing...\n" );
+    }
 }
