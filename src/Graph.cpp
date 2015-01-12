@@ -1,10 +1,9 @@
 //=============================================================================
 //File Name: Graph.cpp
-//Description: Draws a graph in WinGDI
+//Description: Manages a graph in Qt
 //Author: FRC Team 3512, Spartatroniks
 //=============================================================================
 
-#include <iostream>
 #include <fstream>
 
 #include <cmath>
@@ -15,6 +14,7 @@
 #include "ui_MainWindow.h"
 #include "SelectDialog.hpp"
 
+#include <QTcpSocket>
 #include <QMessageBox>
 
 #ifdef _WIN32
@@ -79,26 +79,26 @@ QColor HSVtoRGB( float h , float s , float v ) {
 }
 
 Graph::Graph( MainWindow* parentWindow ) :
-        QObject(parentWindow),
+        QObject( parentWindow ) ,
         m_settings( "IPSettings.txt" ) ,
-        m_curSelect( 0 ) ,
-        m_dataSocket( this ) {
+        m_curSelect( 0 ) {
     m_window = parentWindow;
     m_dataSets.reserve( 64 );
     m_graphNames.reserve( 64 );
+    m_dataSocket = new QTcpSocket( this );
 
-    connect( &m_dataSocket , SIGNAL(readyRead()) , this , SLOT(handleSocketData()) ,
+    connect( m_dataSocket , SIGNAL(readyRead()) , this , SLOT(handleSocketData()) ,
             Qt::QueuedConnection );
-    connect( &m_dataSocket , SIGNAL(stateChanged(QAbstractSocket::SocketState)) ,
+    connect( m_dataSocket , SIGNAL(stateChanged(QAbstractSocket::SocketState)) ,
             this , SLOT(handleStateChange(QAbstractSocket::SocketState)) );
 }
 
 Graph::~Graph() {
-    m_dataSocket.disconnect();
+    m_dataSocket->disconnect();
 }
 
 void Graph::reconnect() {
-    m_dataSocket.disconnect();
+    m_dataSocket->disconnect();
 
     while ( m_dataSets.size() > 0 ) {
         removeGraph( m_dataSets.size() - 1 );
@@ -114,9 +114,9 @@ void Graph::reconnect() {
     m_curSelect = 0;
 
     // Attempt connection to remote data set host
-    m_dataSocket.connectToHost( m_remoteIP , m_dataPort );
+    m_dataSocket->connectToHost( m_remoteIP , m_dataPort );
 
-    if ( !m_dataSocket.isValid() ) {
+    if ( !m_dataSocket->waitForConnected( 1000 ) ) {
         emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
     }
 
@@ -125,8 +125,8 @@ void Graph::reconnect() {
     int64_t count = 0;
     int64_t sent = 0;
     while ( count < 16 ) {
-        sent = m_dataSocket.write( reinterpret_cast<char*>(&m_recvData) , 16 );
-        if ( !m_dataSocket.isValid() || sent < 0 ) {
+        sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) , 16 );
+        if ( !m_dataSocket->isValid() || sent < 0 ) {
             emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
         }
         else {
@@ -283,17 +283,17 @@ bool Graph::saveAsCSV() {
 void Graph::handleSocketData() {
     printf( "socket data\n" );
 
-    if ( m_dataSocket.bytesAvailable() < static_cast<int>(sizeof(m_buffer)) ) {
+    if ( m_dataSocket->bytesAvailable() < static_cast<int>(sizeof(m_buffer)) ) {
         return;
     }
 
     uint64_t count = 0;
     int64_t received = 0;
     while ( count < sizeof(m_buffer) ) {
-        received = m_dataSocket.read( m_buffer , sizeof(m_buffer) );
-        if ( !m_dataSocket.isValid() || received < 0 ) {
+        received = m_dataSocket->read( m_buffer , sizeof(m_buffer) );
+        if ( !m_dataSocket->isValid() || received < 0 ) {
             emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
-            m_dataSocket.disconnect();
+            m_dataSocket->disconnect();
             return;
         }
         else {
@@ -368,10 +368,10 @@ void Graph::sendGraphChoices() {
         uint64_t count = 0;
         int64_t sent = 0;
         while ( count < 16 ) {
-            sent = m_dataSocket.write( reinterpret_cast<char*>(&m_recvData) , 16 );
-            if ( !m_dataSocket.isValid() || sent < 0 ) {
+            sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) , 16 );
+            if ( !m_dataSocket->isValid() || sent < 0 ) {
                 emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
-                m_dataSocket.disconnect();
+                m_dataSocket->disconnect();
                 return;
             }
             else {
@@ -390,16 +390,16 @@ void Graph::sendGraphChoices() {
 }
 
 void Graph::handleStateChange( QAbstractSocket::SocketState state ) {
-    if ( state == QAbstractSocket::SocketState::UnconnectedState ) {
+    if ( state == QAbstractSocket::UnconnectedState ) {
         emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
     }
-    else if ( state == QAbstractSocket::SocketState::ConnectingState ) {
+    else if ( state == QAbstractSocket::ConnectingState ) {
         printf( "Connecting...\n" );
     }
-    else if ( state == QAbstractSocket::SocketState::ConnectedState ) {
+    else if ( state == QAbstractSocket::ConnectedState ) {
         printf( "Connected\n" );
     }
-    else if ( state == QAbstractSocket::SocketState::ClosingState ) {
+    else if ( state == QAbstractSocket::ClosingState ) {
         printf( "Closing...\n" );
     }
 }

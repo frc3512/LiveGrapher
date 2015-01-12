@@ -1,6 +1,6 @@
 //=============================================================================
 //File Name: Graph.hpp
-//Description: Draws a graph in WinGDI
+//Description: Manages a graph in Qt
 //Author: FRC Team 3512, Spartatroniks
 //=============================================================================
 
@@ -17,8 +17,9 @@
 
 #include <QObject>
 #include <QColor>
-#include <QTcpSocket>
 #include <QHostAddress>
+
+class QTcpSocket;
 
 typedef std::pair<float , float> Pair;
 typedef std::list<Pair> DataSet;
@@ -81,6 +82,7 @@ class SelectDialog;
 
 class Graph : public QObject {
     Q_OBJECT
+
 public:
     explicit Graph( MainWindow* parentWindow );
     virtual ~Graph();
@@ -140,7 +142,7 @@ private:
         Disconnected
     };
 
-    QTcpSocket m_dataSocket;
+    QTcpSocket* m_dataSocket;
 
     QHostAddress m_remoteIP;
     unsigned short m_dataPort;

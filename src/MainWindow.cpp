@@ -2,11 +2,10 @@
 #include "ui_MainWindow.h"
 
 MainWindow::MainWindow( QWidget* parent ) :
-    QMainWindow( parent ) ,
-    m_ui( new Ui::MainWindow ) ,
-    m_graph( this ) ,
-    m_settings( "IPSettings.txt" )
-{
+        QMainWindow( parent ) ,
+        m_ui( new Ui::MainWindow ) ,
+        m_graph( this ) ,
+        m_settings( "IPSettings.txt" ) {
     m_ui->setupUi( this );
 
     connect( m_ui->actionSave_As_CSV , SIGNAL(triggered()) , &m_graph , SLOT(saveAsCSV()) );
