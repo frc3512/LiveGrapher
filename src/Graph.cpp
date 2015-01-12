@@ -113,40 +113,30 @@ void Graph::reconnect() {
     // Reset list of data set recv statuses
     m_curSelect = 0;
 
-    try {
-        // Attempt connection to remote data set host
-        m_dataSocket.connectToHost( m_remoteIP , m_dataPort );
+    // Attempt connection to remote data set host
+    m_dataSocket.connectToHost( m_remoteIP , m_dataPort );
 
-        if ( !m_dataSocket.isValid() ) {
-            throw Error::FailConnect;
-        }
-
-        // Request list of all data sets on remote host
-        m_recvData.id = 'l';
-        int64_t count = 0;
-        int64_t sent = 0;
-        while ( count < 16 ) {
-            sent = m_dataSocket.write( reinterpret_cast<char*>(&m_recvData) , 16 );
-            if ( !m_dataSocket.isValid() || sent < 0 ) {
-                throw Error::Disconnected;
-            }
-            else {
-                count += sent;
-            }
-        }
-
-        // Clear m_graphNames before refilling it
-        m_graphNames.clear();
-        m_graphNamesMap.clear();
+    if ( !m_dataSocket.isValid() ) {
+        emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
     }
-    catch ( Error& exception ) {
-        if ( exception == Error::FailConnect ) {
-            emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
-        }
-        else if ( exception == Error::Disconnected ) {
+
+    // Request list of all data sets on remote host
+    m_recvData.id = 'l';
+    int64_t count = 0;
+    int64_t sent = 0;
+    while ( count < 16 ) {
+        sent = m_dataSocket.write( reinterpret_cast<char*>(&m_recvData) , 16 );
+        if ( !m_dataSocket.isValid() || sent < 0 ) {
             emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
         }
+        else {
+            count += sent;
+        }
     }
+
+    // Clear m_graphNames before refilling it
+    m_graphNames.clear();
+    m_graphNamesMap.clear();
 }
 
 void Graph::addData( unsigned int index , const Pair& data ) {
