@@ -115,8 +115,7 @@ void Graph::reconnect() {
 
     try {
         // Attempt connection to remote data set host
-        //m_dataSocket.connectToHost( m_remoteIP , m_dataPort );
-        m_dataSocket.connectToHost("127.0.0.1",1023);
+        m_dataSocket.connectToHost( m_remoteIP , m_dataPort );
 
         if ( !m_dataSocket.isValid() ) {
             throw Error::FailConnect;
@@ -202,6 +201,7 @@ void Graph::removeGraph( unsigned int index ) {
 
     m_window->m_uiMutex.lock();
     m_window->m_ui->plot->removeGraph( index );
+    m_window->m_ui->plot->legend->removeItem( index );
     m_window->m_uiMutex.unlock();
 }
 
@@ -380,7 +380,9 @@ void Graph::sendGraphChoices() {
         while ( count < 16 ) {
             sent = m_dataSocket.write( reinterpret_cast<char*>(&m_recvData) , 16 );
             if ( !m_dataSocket.isValid() || sent < 0 ) {
-                throw Error::Disconnected;
+                emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+                m_dataSocket.disconnect();
+                return;
             }
             else {
                 count += sent;
