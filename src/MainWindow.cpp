@@ -32,8 +32,7 @@ MainWindow::MainWindow( QWidget* parent ) :
 
     /* Bind signals and slots for communication between the graph TCP client thread
      * and the UI thread */
-    connect(&m_graph, SIGNAL(realtimeDataSignal(int,float,float)), this, SLOT(realtimeDataSlot(int,float,float)),
-            Qt::BlockingQueuedConnection);
+    connect(&m_graph, SIGNAL(realtimeDataSignal(int,float,float)), this, SLOT(realtimeDataSlot(int,float,float)) );
     connect(&m_graph, SIGNAL(infoDialogSignal(const QString&,const QString&)), this, SLOT(infoDialog(const QString&,const QString&)),
             Qt::QueuedConnection);
     connect(&m_graph, SIGNAL(criticalDialogSignal(const QString&,const QString&)), this, SLOT(criticalDialog(const QString&,const QString&)),

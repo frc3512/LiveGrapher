@@ -137,11 +137,6 @@ private:
     // Provides way to get a data set's index given the name
     std::map<std::string , unsigned char> m_graphNamesMap;
 
-    enum Error {
-        FailConnect = 0,
-        Disconnected
-    };
-
     QTcpSocket* m_dataSocket;
 
     QHostAddress m_remoteIP;

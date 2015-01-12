@@ -15,7 +15,6 @@
 #include "SelectDialog.hpp"
 
 #include <QTcpSocket>
-#include <QMessageBox>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -87,8 +86,7 @@ Graph::Graph( MainWindow* parentWindow ) :
     m_graphNames.reserve( 64 );
     m_dataSocket = new QTcpSocket( this );
 
-    connect( m_dataSocket , SIGNAL(readyRead()) , this , SLOT(handleSocketData()) ,
-            Qt::QueuedConnection );
+    connect( m_dataSocket , SIGNAL(readyRead()) , this , SLOT(handleSocketData()) );
     connect( m_dataSocket , SIGNAL(stateChanged(QAbstractSocket::SocketState)) ,
             this , SLOT(handleStateChange(QAbstractSocket::SocketState)) );
 }
@@ -98,10 +96,8 @@ Graph::~Graph() {
 }
 
 void Graph::reconnect() {
-    m_dataSocket->disconnect();
-
-    while ( m_dataSets.size() > 0 ) {
-        removeGraph( m_dataSets.size() - 1 );
+    if ( m_dataSocket->isValid() ) {
+        m_dataSocket->disconnect();
     }
 
     m_remoteIP = QString::fromUtf8( m_settings.getString( "robotIP" ).c_str() );
@@ -114,10 +110,12 @@ void Graph::reconnect() {
     m_curSelect = 0;
 
     // Attempt connection to remote data set host
-    m_dataSocket->connectToHost( m_remoteIP , m_dataPort );
+    if ( !m_dataSocket->isValid() ) {
+        m_dataSocket->connectToHost( m_remoteIP , m_dataPort );
 
-    if ( !m_dataSocket->waitForConnected( 1000 ) ) {
-        emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
+        if ( !m_dataSocket->waitForConnected( 1000 ) ) {
+            emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
+        }
     }
 
     // Request list of all data sets on remote host
@@ -281,72 +279,73 @@ bool Graph::saveAsCSV() {
 }
 
 void Graph::handleSocketData() {
-    printf( "socket data\n" );
-
-    if ( m_dataSocket->bytesAvailable() < static_cast<int>(sizeof(m_buffer)) ) {
-        return;
-    }
-
-    uint64_t count = 0;
-    int64_t received = 0;
-    while ( count < sizeof(m_buffer) ) {
-        received = m_dataSocket->read( m_buffer , sizeof(m_buffer) );
-        if ( !m_dataSocket->isValid() || received < 0 ) {
-            emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
-            m_dataSocket->disconnect();
-            return;
+    while ( m_dataSocket->bytesAvailable() >= static_cast<int>(sizeof(m_buffer)) ) {
+        uint64_t count = 0;
+        int64_t received = 0;
+        while ( count < sizeof(m_buffer) ) {
+            received = m_dataSocket->read( m_buffer , sizeof(m_buffer) );
+            if ( !m_dataSocket->isValid() || received < 0 ) {
+                emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+                m_dataSocket->disconnect();
+                return;
+            }
+            else {
+                count += received;
+            }
         }
-        else {
-            count += received;
+
+        if ( m_buffer[0] == 'd' ) {
+            std::memcpy( &m_recvData , m_buffer , sizeof(m_buffer) );
+
+            /* ===== Add sent point to local graph ===== */
+            // This will only work if ints are the same size as floats
+            static_assert( sizeof(float) == sizeof(uint32_t) , "float isn't 32 bits long" );
+
+            // Used for endianness conversions
+            uint32_t tmp;
+
+            // Convert endianness of x component
+            std::memcpy( &tmp , &m_recvData.x , sizeof(m_recvData.x) );
+            tmp = ntohl( tmp );
+            std::memcpy( &m_recvData.x , &tmp , sizeof(m_recvData.x) );
+
+            // Convert endianness of y component
+            std::memcpy( &tmp , &m_recvData.y , sizeof(m_recvData.y) );
+            tmp = ntohl( tmp );
+            std::memcpy( &m_recvData.y , &tmp , sizeof(m_recvData.y) );
+
+            /* Add data to appropriate data set; store point in
+             * temps b/c references can't be made of packed
+             * (unaligned) struct variables
+             */
+            float x = m_recvData.x;
+            float y = m_recvData.y;
+            addData( m_graphNamesMap[m_recvData.graphName] , Pair( x , y ) );
+            /* ========================================= */
         }
-    }
+        else if ( m_buffer[0] == 'l' ) {
+            std::memcpy( &m_listData , m_buffer , sizeof(m_buffer) );
 
-    if ( m_buffer[0] == 'd' ) {
-        std::memcpy( &m_recvData , m_buffer , sizeof(m_buffer) );
+            m_graphNames.push_back( m_listData.graphName );
+            m_graphNamesMap[m_listData.graphName] = m_graphNames.size() - 1;
 
-        /* ===== Add sent point to local graph ===== */
-        // This will only work if ints are the same size as floats
-        static_assert( sizeof(float) == sizeof(uint32_t) , "float isn't 32 bits long" );
-
-        // Used for endianness conversions
-        uint32_t tmp;
-
-        // Convert endianness of x component
-        std::memcpy( &tmp , &m_recvData.x , sizeof(m_recvData.x) );
-        tmp = ntohl( tmp );
-        std::memcpy( &m_recvData.x , &tmp , sizeof(m_recvData.x) );
-
-        // Convert endianness of y component
-        std::memcpy( &tmp , &m_recvData.y , sizeof(m_recvData.y) );
-        tmp = ntohl( tmp );
-        std::memcpy( &m_recvData.y , &tmp , sizeof(m_recvData.y) );
-
-        /* Add data to appropriate data set; store point in
-         * temps b/c references can't be made of packed
-         * (unaligned) struct variables
-         */
-        float x = m_recvData.x;
-        float y = m_recvData.y;
-        addData( m_graphNamesMap[m_recvData.graphName] , Pair( x , y ) );
-        /* ========================================= */
-    }
-    else if ( m_buffer[0] == 'l' ) {
-        std::memcpy( &m_listData , m_buffer , sizeof(m_buffer) );
-
-        m_graphNames.push_back( m_listData.graphName );
-        m_graphNamesMap[m_listData.graphName] = m_graphNames.size() - 1;
-
-        // If that was the last name, exit the recv loop
-        if ( m_listData.eof == 1 ) {
-            // Allow user to select which data sets to receive
-            SelectDialog* dialog = new SelectDialog( m_graphNames , this , m_window );
-            connect( dialog , SIGNAL(finished(int)) , this , SLOT(sendGraphChoices()) );
-            dialog->exec();
+            // If that was the last name, exit the recv loop
+            if ( m_listData.eof == 1 ) {
+                // Allow user to select which data sets to receive
+                SelectDialog* dialog = new SelectDialog( m_graphNames , this , m_window );
+                connect( dialog , SIGNAL(finished(int)) , this , SLOT(sendGraphChoices()) );
+                dialog->open();
+            }
         }
     }
 }
 
 void Graph::sendGraphChoices() {
+    // Remove old graphs before creating new ones
+    while ( m_dataSets.size() > 0 ) {
+        removeGraph( m_dataSets.size() - 1 );
+    }
+
     /* Send updated status on streams to which to connect based on the bit
      * array
      */
@@ -392,14 +391,5 @@ void Graph::sendGraphChoices() {
 void Graph::handleStateChange( QAbstractSocket::SocketState state ) {
     if ( state == QAbstractSocket::UnconnectedState ) {
         emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
-    }
-    else if ( state == QAbstractSocket::ConnectingState ) {
-        printf( "Connecting...\n" );
-    }
-    else if ( state == QAbstractSocket::ConnectedState ) {
-        printf( "Connected\n" );
-    }
-    else if ( state == QAbstractSocket::ClosingState ) {
-        printf( "Closing...\n" );
     }
 }
