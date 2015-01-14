@@ -27,7 +27,8 @@ QColor HSVtoRGB( float h , float s , float v ) {
     float m = v - chroma;
 
     float modTemp = hPrime - static_cast<int>(hPrime);
-    float x = chroma * ( 1.f - std::fabs( static_cast<int>(hPrime) % 2 + modTemp - 1 ) );
+    float x = chroma *
+            ( 1.f - std::fabs( static_cast<int>(hPrime) % 2 + modTemp - 1 ) );
 
     if ( 0 <= hPrime && hPrime < 1 ) {
         r = chroma;
@@ -83,11 +84,11 @@ Graph::Graph( MainWindow* parentWindow ) :
     m_remoteIP = QString::fromUtf8( m_settings.getString( "robotIP" ).c_str() );
     m_dataPort = m_settings.getInt( "robotGraphPort" );
 
-    m_startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    m_startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
 
-    connect( m_dataSocket , SIGNAL(readyRead()) , this , SLOT(handleSocketData()) );
-    connect( m_dataSocket , SIGNAL(stateChanged(QAbstractSocket::SocketState)) ,
-            this , SLOT(handleStateChange(QAbstractSocket::SocketState)) );
+    connect( m_dataSocket , SIGNAL(readyRead()) ,
+             this , SLOT(handleSocketData()) );
 }
 
 Graph::~Graph() {
@@ -106,7 +107,9 @@ void Graph::reconnect() {
         m_dataSocket->connectToHost( m_remoteIP , m_dataPort );
 
         if ( !m_dataSocket->waitForConnected( 1000 ) ) {
-            QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
+            QMessageBox::critical( m_window , QObject::tr("Connection Error") ,
+                QObject::tr("Connection to remote host failed") );
+            return;
         }
     }
 
@@ -117,7 +120,11 @@ void Graph::reconnect() {
     while ( count < 16 ) {
         sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) , 16 );
         if ( !m_dataSocket->isValid() || sent < 0 ) {
-            QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+            printf( "hi\n" );
+            QMessageBox::critical( m_window , QObject::tr("Connection Error") ,
+                QObject::tr("Unexpected disconnection from remote host") );
+            m_dataSocket->disconnect();
+            return;
         }
         else {
             count += sent;
@@ -166,21 +173,26 @@ void Graph::removeGraph( unsigned int index ) {
 bool Graph::saveAsCSV() {
     // There isn't any point in creating a file with no data in it
     if ( m_dataSets.size() == 0 ) {
-        QMessageBox::critical( m_window , QObject::tr("Save Data") , QObject::tr("No graph data to save") );
+        QMessageBox::critical( m_window , QObject::tr("Save Data") ,
+            QObject::tr("No graph data to save") );
         return false;
     }
 
     /* ===== Create unique name for file ===== */
-    typedef std::chrono::duration<int, std::ratio_multiply<std::chrono::hours::period, std::ratio<24>>::type> days;
-    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    typedef std::chrono::duration<int,std::ratio_multiply<
+            std::chrono::hours::period, std::ratio<24>>::type> days;
+    std::chrono::system_clock::time_point now =
+            std::chrono::system_clock::now();
     std::chrono::system_clock::duration tp = now.time_since_epoch();
     days d = std::chrono::duration_cast<days>(tp);
     tp -= d;
     std::chrono::hours h = std::chrono::duration_cast<std::chrono::hours>(tp);
     tp -= h;
-    std::chrono::minutes m = std::chrono::duration_cast<std::chrono::minutes>(tp);
+    std::chrono::minutes m =
+            std::chrono::duration_cast<std::chrono::minutes>(tp);
     tp -= m;
-    std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(tp);
+    std::chrono::seconds s =
+            std::chrono::duration_cast<std::chrono::seconds>(tp);
     tp -= s;
 
     char buf[128];
@@ -235,23 +247,28 @@ bool Graph::saveAsCSV() {
 
         saveFile.close();
 
-        QMessageBox::information( m_window , QObject::tr("Save Data") , QObject::tr("Successfully saved graph data to file") );
+        QMessageBox::information( m_window , QObject::tr("Save Data") ,
+            QObject::tr("Successfully saved graph data to file") );
         return true;
     }
     else {
-        QMessageBox::critical( m_window , QObject::tr("Save Data") , QObject::tr("Failed to save graph data to file") );
+        QMessageBox::critical( m_window , QObject::tr("Save Data") ,
+            QObject::tr("Failed to save graph data to file") );
         return false;
     }
 }
 
 void Graph::handleSocketData() {
-    while ( m_dataSocket->bytesAvailable() >= static_cast<int>(sizeof(m_buffer)) ) {
+    while ( m_dataSocket->bytesAvailable() >=
+            static_cast<int>(sizeof(m_buffer)) ) {
         uint64_t count = 0;
         int64_t received = 0;
         while ( count < sizeof(m_buffer) ) {
             received = m_dataSocket->read( m_buffer , sizeof(m_buffer) );
             if ( !m_dataSocket->isValid() || received < 0 ) {
-                QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+                QMessageBox::critical( m_window ,
+                    QObject::tr("Connection Error") ,
+                    QObject::tr("Unexpected disconnection from remote host") );
                 m_dataSocket->disconnect();
                 return;
             }
@@ -265,7 +282,8 @@ void Graph::handleSocketData() {
 
             /* ===== Add sent point to local graph ===== */
             // This will only work if ints are the same size as floats
-            static_assert( sizeof(float) == sizeof(uint32_t) , "float isn't 32 bits long" );
+            static_assert( sizeof(float) == sizeof(uint32_t) ,
+                           "float isn't 32 bits long" );
 
             // Used for endianness conversions
             decltype(m_recvData.x) xtmp;
@@ -294,7 +312,9 @@ void Graph::handleSocketData() {
         else if ( m_buffer[0] == 'l' ) {
             std::memcpy( &m_listData , m_buffer , sizeof(m_buffer) );
 
-            decltype(m_graphNames)::iterator i = std::find( m_graphNames.begin() , m_graphNames.end() , m_listData.graphName );
+            decltype(m_graphNames)::iterator i =
+                    std::find( m_graphNames.begin() , m_graphNames.end() ,
+                               m_listData.graphName );
             if ( i == m_graphNames.end() ) {
                 m_graphNames.push_back( m_listData.graphName );
                 m_graphNamesMap[m_listData.graphName] = m_graphNames.size() - 1;
@@ -303,8 +323,10 @@ void Graph::handleSocketData() {
             // If that was the last name, exit the recv loop
             if ( m_listData.eof == 1 ) {
                 // Allow user to select which data sets to receive
-                SelectDialog* dialog = new SelectDialog( m_graphNames , this , m_window );
-                connect( dialog , SIGNAL(finished(int)) , this , SLOT(sendGraphChoices()) );
+                SelectDialog* dialog = new SelectDialog( m_graphNames , this ,
+                                                         m_window );
+                connect( dialog , SIGNAL(finished(int)) ,
+                         this , SLOT(sendGraphChoices()) );
                 dialog->open();
             }
         }
@@ -338,9 +360,12 @@ void Graph::sendGraphChoices() {
         uint64_t count = 0;
         int64_t sent = 0;
         while ( count < 16 ) {
-            sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) , 16 );
+            sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) ,
+                                        16 );
             if ( !m_dataSocket->isValid() || sent < 0 ) {
-                QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+                QMessageBox::critical( m_window ,
+                    QObject::tr("Connection Error") ,
+                    QObject::tr("Unexpected disconnection from remote host") );
                 m_dataSocket->disconnect();
                 return;
             }
@@ -355,6 +380,7 @@ void Graph::sendGraphChoices() {
          * This algorithm gives 25 possible values, one being black.
          */
         constexpr unsigned int parts = 3;
-        createGraph( m_graphNames[i] , HSVtoRGB( 360 / parts * i % 360 , 1 , 1 - 0.25 * std::floor( i / parts ) ) );
+        createGraph( m_graphNames[i] , HSVtoRGB( 360 / parts * i % 360 , 1 ,
+            1 - 0.25 * std::floor( i / parts ) ) );
     }
 }

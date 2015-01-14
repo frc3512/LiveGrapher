@@ -8,11 +8,16 @@ MainWindow::MainWindow( QWidget* parent ) :
         m_settings( "IPSettings.txt" ) {
     m_ui->setupUi( this );
 
-    connect( m_ui->actionSave_As_CSV , SIGNAL(triggered()) , &m_graph , SLOT(saveAsCSV()) );
-    connect( m_ui->actionAbout , SIGNAL(triggered()) , this , SLOT(about()) );
-    connect( m_ui->connectButton , SIGNAL(released()) , this , SLOT(reconnect()) );
-    connect( m_ui->clearDataButton , SIGNAL(released()) , this , SLOT(clearAllData()) );
-    connect( m_ui->saveButton , SIGNAL(released()) , &m_graph , SLOT(saveAsCSV()) );
+    connect( m_ui->actionSave_As_CSV , SIGNAL(triggered()) ,
+             &m_graph , SLOT(saveAsCSV()) );
+    connect( m_ui->actionAbout , SIGNAL(triggered()) ,
+             this , SLOT(about()) );
+    connect( m_ui->connectButton , SIGNAL(released()) ,
+             this , SLOT(reconnect()) );
+    connect( m_ui->clearDataButton , SIGNAL(released()) ,
+             this , SLOT(clearAllData()) );
+    connect( m_ui->saveButton , SIGNAL(released()) ,
+             &m_graph , SLOT(saveAsCSV()) );
 
     QCustomPlot* customPlot = m_ui->plot;
 
@@ -27,12 +32,16 @@ MainWindow::MainWindow( QWidget* parent ) :
 
     // make left and bottom axes transfer their ranges to right and top axes:
     qRegisterMetaType<QCPRange>( "QCPRange" );
-    connect(customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->xAxis2, SLOT(setRange(QCPRange)));
-    connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->yAxis2, SLOT(setRange(QCPRange)));
+    connect(customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)),
+            customPlot->xAxis2, SLOT(setRange(QCPRange)));
+    connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)),
+            customPlot->yAxis2, SLOT(setRange(QCPRange)));
 
-    /* Bind signals and slots for communication between the graph TCP client thread
-     * and the UI thread */
-    connect(&m_graph, SIGNAL(realtimeDataSignal(int,float,float)), this, SLOT(realtimeDataSlot(int,float,float)) );
+    /* Bind signals and slots for communication between the graph TCP client
+     * thread and the UI thread
+     */
+    connect(&m_graph, SIGNAL(realtimeDataSignal(int,float,float)),
+            this, SLOT(realtimeDataSlot(int,float,float)) );
 
     m_xHistory = m_settings.getFloat( "xHistory" );
 }
@@ -87,7 +96,8 @@ void MainWindow::realtimeDataSlot( int graphId , float x , float y ) {
     m_ui->plot->xAxis->setRange( x , m_xHistory , Qt::AlignRight );
     static uint64_t lastTime = 0;
     static uint64_t currentTime;
-    currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
     if ( currentTime - lastTime > 1000/30 ) {
         m_ui->plot->replot();
         lastTime = currentTime;
