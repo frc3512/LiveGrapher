@@ -126,38 +126,24 @@ void Graph::reconnect() {
 }
 
 void Graph::addData( unsigned int index , const Pair& data ) {
-    m_dataMutex.lock();
     m_dataSets[index].push_back( data );
-    m_dataMutex.unlock();
 
     m_window->realtimeDataSlot( index , data.first , data.second );
     //emit realtimeDataSignal( index , data.first , data.second );
 }
 
 void Graph::clearAllData() {
-    m_dataMutex.lock();
-
     for ( auto set : m_dataSets ) {
         set.clear();
     }
 
-    m_dataMutex.unlock();
-
-    m_window->m_uiMutex.lock();
-
     for ( int i = 0 ; i < m_window->m_ui->plot->graphCount() ; i++ ) {
         m_window->m_ui->plot->graph( i )->clearData();
     }
-
-    m_window->m_uiMutex.unlock();
 }
 
 void Graph::createGraph( const std::string& name , QColor color ) {
-    m_dataMutex.lock();
     m_dataSets.push_back( DataSet() );
-    m_dataMutex.unlock();
-
-    m_window->m_uiMutex.lock();
 
     QCustomPlot* customPlot = m_window->m_ui->plot;
     customPlot->addGraph();
@@ -167,22 +153,14 @@ void Graph::createGraph( const std::string& name , QColor color ) {
     QPen pen( color );
     pen.setWidth( 1 );
     customPlot->graph()->setPen( pen );
-
-    m_window->m_uiMutex.unlock();
 }
 
 void Graph::removeGraph( unsigned int index ) {
-    m_dataMutex.lock();
-
     // Remove data set
     m_dataSets.erase( m_dataSets.begin() + index );
 
-    m_dataMutex.unlock();
-
-    m_window->m_uiMutex.lock();
     m_window->m_ui->plot->removeGraph( index );
     m_window->m_ui->plot->legend->removeItem( index );
-    m_window->m_uiMutex.unlock();
 }
 
 bool Graph::saveAsCSV() {
@@ -216,8 +194,6 @@ bool Graph::saveAsCSV() {
     std::ofstream saveFile( buf , std::ios_base::trunc );
 
     if ( saveFile.is_open() ) {
-        m_dataMutex.lock();
-
         std::vector<std::list<Pair>::iterator> sets( m_dataSets.size() );
 
         for ( unsigned int i = 0 ; i < m_dataSets.size() ; i++ ) {
@@ -256,8 +232,6 @@ bool Graph::saveAsCSV() {
                 saveFile << '\n';
             }
         }
-
-        m_dataMutex.unlock();
 
         saveFile.close();
 

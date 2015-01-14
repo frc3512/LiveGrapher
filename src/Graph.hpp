@@ -123,8 +123,6 @@ private:
     // Contains graph data to plot
     std::vector<DataSet> m_dataSets;
 
-    std::mutex m_dataMutex;
-
     // Contains names for all graphs available on host
     std::vector<std::string> m_graphNames;
 

@@ -66,8 +66,6 @@ void MainWindow::clearAllData() {
 }
 
 void MainWindow::realtimeDataSlot( int graphId , float x , float y ) {
-    m_uiMutex.lock();
-
     // Add data to lines
     m_ui->plot->graph( graphId )->addData( x , y );
 
@@ -94,6 +92,4 @@ void MainWindow::realtimeDataSlot( int graphId , float x , float y ) {
         m_ui->plot->replot();
         lastTime = currentTime;
     }
-
-    m_uiMutex.unlock();
 }

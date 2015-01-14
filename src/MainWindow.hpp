@@ -28,7 +28,6 @@ private slots:
 
 private:
     Ui::MainWindow* m_ui;
-    std::mutex m_uiMutex;
 
     Graph m_graph;
 
