@@ -15,12 +15,7 @@
 #include "SelectDialog.hpp"
 
 #include <QTcpSocket>
-
-#ifdef _WIN32
-#include <winsock2.h>
-#else
-#include <netinet/in.h>
-#endif
+#include <QtEndian>
 
 QColor HSVtoRGB( float h , float s , float v ) {
     float r;
@@ -85,6 +80,10 @@ Graph::Graph( MainWindow* parentWindow ) :
     m_dataSets.reserve( 64 );
     m_graphNames.reserve( 64 );
     m_dataSocket = new QTcpSocket( this );
+    m_remoteIP = QString::fromUtf8( m_settings.getString( "robotIP" ).c_str() );
+    m_dataPort = m_settings.getInt( "robotGraphPort" );
+
+    m_startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
     connect( m_dataSocket , SIGNAL(readyRead()) , this , SLOT(handleSocketData()) );
     connect( m_dataSocket , SIGNAL(stateChanged(QAbstractSocket::SocketState)) ,
@@ -96,13 +95,6 @@ Graph::~Graph() {
 }
 
 void Graph::reconnect() {
-    if ( m_dataSocket->isValid() ) {
-        m_dataSocket->disconnect();
-    }
-
-    m_remoteIP = QString::fromUtf8( m_settings.getString( "robotIP" ).c_str() );
-    m_dataPort = m_settings.getInt( "robotGraphPort" );
-
     std::memset( &m_recvData , 0 , sizeof(m_recvData) );
     std::memset( &m_listData , 0 ,sizeof(m_listData) );
 
@@ -114,7 +106,7 @@ void Graph::reconnect() {
         m_dataSocket->connectToHost( m_remoteIP , m_dataPort );
 
         if ( !m_dataSocket->waitForConnected( 1000 ) ) {
-            emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
+            QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
         }
     }
 
@@ -125,16 +117,12 @@ void Graph::reconnect() {
     while ( count < 16 ) {
         sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) , 16 );
         if ( !m_dataSocket->isValid() || sent < 0 ) {
-            emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+            QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
         }
         else {
             count += sent;
         }
     }
-
-    // Clear m_graphNames before refilling it
-    m_graphNames.clear();
-    m_graphNamesMap.clear();
 }
 
 void Graph::addData( unsigned int index , const Pair& data ) {
@@ -142,7 +130,8 @@ void Graph::addData( unsigned int index , const Pair& data ) {
     m_dataSets[index].push_back( data );
     m_dataMutex.unlock();
 
-    emit realtimeDataSignal( index , data.first , data.second );
+    m_window->realtimeDataSlot( index , data.first , data.second );
+    //emit realtimeDataSignal( index , data.first , data.second );
 }
 
 void Graph::clearAllData() {
@@ -173,8 +162,11 @@ void Graph::createGraph( const std::string& name , QColor color ) {
     QCustomPlot* customPlot = m_window->m_ui->plot;
     customPlot->addGraph();
     customPlot->graph()->setName( QString::fromUtf8(name.c_str()) );
-    customPlot->graph()->setPen( QPen(color) );
     customPlot->graph()->setAntialiasedFill( false );
+
+    QPen pen( color );
+    pen.setWidth( 1 );
+    customPlot->graph()->setPen( pen );
 
     m_window->m_uiMutex.unlock();
 }
@@ -196,7 +188,7 @@ void Graph::removeGraph( unsigned int index ) {
 bool Graph::saveAsCSV() {
     // There isn't any point in creating a file with no data in it
     if ( m_dataSets.size() == 0 ) {
-        emit criticalDialogSignal( QObject::tr("Save Data") , QObject::tr("No graph data to save") );
+        QMessageBox::critical( m_window , QObject::tr("Save Data") , QObject::tr("No graph data to save") );
         return false;
     }
 
@@ -269,11 +261,11 @@ bool Graph::saveAsCSV() {
 
         saveFile.close();
 
-        emit infoDialogSignal( QObject::tr("Save Data") , QObject::tr("Successfully saved graph data to file") );
+        QMessageBox::information( m_window , QObject::tr("Save Data") , QObject::tr("Successfully saved graph data to file") );
         return true;
     }
     else {
-        emit criticalDialogSignal( QObject::tr("Save Data") , QObject::tr("Failed to save graph data to file") );
+        QMessageBox::critical( m_window , QObject::tr("Save Data") , QObject::tr("Failed to save graph data to file") );
         return false;
     }
 }
@@ -285,7 +277,7 @@ void Graph::handleSocketData() {
         while ( count < sizeof(m_buffer) ) {
             received = m_dataSocket->read( m_buffer , sizeof(m_buffer) );
             if ( !m_dataSocket->isValid() || received < 0 ) {
-                emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+                QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
                 m_dataSocket->disconnect();
                 return;
             }
@@ -302,32 +294,37 @@ void Graph::handleSocketData() {
             static_assert( sizeof(float) == sizeof(uint32_t) , "float isn't 32 bits long" );
 
             // Used for endianness conversions
-            uint32_t tmp;
+            decltype(m_recvData.x) xtmp;
+            uint32_t ytmp;
 
             // Convert endianness of x component
-            std::memcpy( &tmp , &m_recvData.x , sizeof(m_recvData.x) );
-            tmp = ntohl( tmp );
-            std::memcpy( &m_recvData.x , &tmp , sizeof(m_recvData.x) );
+            std::memcpy( &xtmp , &m_recvData.x , sizeof(m_recvData.x) );
+            xtmp = qFromBigEndian<qint64>( xtmp );
+            std::memcpy( &m_recvData.x , &xtmp , sizeof(m_recvData.x) );
 
             // Convert endianness of y component
-            std::memcpy( &tmp , &m_recvData.y , sizeof(m_recvData.y) );
-            tmp = ntohl( tmp );
-            std::memcpy( &m_recvData.y , &tmp , sizeof(m_recvData.y) );
+            std::memcpy( &ytmp , &m_recvData.y , sizeof(m_recvData.y) );
+            ytmp = qFromBigEndian<qint32>( ytmp );
+            std::memcpy( &m_recvData.y , &ytmp , sizeof(m_recvData.y) );
 
             /* Add data to appropriate data set; store point in
              * temps b/c references can't be made of packed
              * (unaligned) struct variables
              */
-            float x = m_recvData.x;
-            float y = m_recvData.y;
-            addData( m_graphNamesMap[m_recvData.graphName] , Pair( x , y ) );
+            decltype(m_recvData.x) x = m_recvData.x - m_startTime;
+            decltype(m_recvData.y) y = m_recvData.y;
+            addData( m_graphNamesMap[m_recvData.graphName] ,
+                Pair( x/1000.f , y ) );
             /* ========================================= */
         }
         else if ( m_buffer[0] == 'l' ) {
             std::memcpy( &m_listData , m_buffer , sizeof(m_buffer) );
 
-            m_graphNames.push_back( m_listData.graphName );
-            m_graphNamesMap[m_listData.graphName] = m_graphNames.size() - 1;
+            decltype(m_graphNames)::iterator i = std::find( m_graphNames.begin() , m_graphNames.end() , m_listData.graphName );
+            if ( i == m_graphNames.end() ) {
+                m_graphNames.push_back( m_listData.graphName );
+                m_graphNamesMap[m_listData.graphName] = m_graphNames.size() - 1;
+            }
 
             // If that was the last name, exit the recv loop
             if ( m_listData.eof == 1 ) {
@@ -369,7 +366,7 @@ void Graph::sendGraphChoices() {
         while ( count < 16 ) {
             sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) , 16 );
             if ( !m_dataSocket->isValid() || sent < 0 ) {
-                emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
+                QMessageBox::critical( m_window , QObject::tr("Connection Error") , QObject::tr("Unexpected disconnection from remote host") );
                 m_dataSocket->disconnect();
                 return;
             }
@@ -385,11 +382,5 @@ void Graph::sendGraphChoices() {
          */
         constexpr unsigned int parts = 3;
         createGraph( m_graphNames[i] , HSVtoRGB( 360 / parts * i % 360 , 1 , 1 - 0.25 * std::floor( i / parts ) ) );
-    }
-}
-
-void Graph::handleStateChange( QAbstractSocket::SocketState state ) {
-    if ( state == QAbstractSocket::UnconnectedState ) {
-        emit criticalDialogSignal( QObject::tr("Connection Error") , QObject::tr("Connection to remote host failed") );
     }
 }

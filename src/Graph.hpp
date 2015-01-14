@@ -59,14 +59,14 @@ typedef std::list<Pair> DataSet;
  *     struct packet_t {
  *         char id;
  *         char graphName[15];
- *         float x;
+ *         uint64_t x;
  *         float y;
  *     }
  */
 struct [[gnu::packed]] packet_t {
     char id;
     char graphName[15];
-    float x;
+    uint64_t x;
     float y;
 };
 
@@ -74,7 +74,7 @@ struct [[gnu::packed]] packet_list_t {
     char id;
     char graphName[15];
     char eof;
-    char padding[7];
+    char padding[11];
 };
 
 class MainWindow;
@@ -110,13 +110,10 @@ public slots:
 
 signals:
     void realtimeDataSignal( int graphId , float x , float y );
-    void infoDialogSignal( const QString& , const QString& );
-    void criticalDialogSignal( const QString& , const QString& );
 
 private slots:
     void handleSocketData();
     void sendGraphChoices();
-    void handleStateChange( QAbstractSocket::SocketState state );
 
 private:
     MainWindow* m_window;
@@ -142,7 +139,9 @@ private:
     QHostAddress m_remoteIP;
     unsigned short m_dataPort;
 
-    char m_buffer[24];
+    uint64_t m_startTime;
+
+    char m_buffer[sizeof(struct packet_t)];
     struct packet_t m_recvData;
     struct packet_list_t m_listData;
 

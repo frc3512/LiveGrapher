@@ -33,10 +33,6 @@ MainWindow::MainWindow( QWidget* parent ) :
     /* Bind signals and slots for communication between the graph TCP client thread
      * and the UI thread */
     connect(&m_graph, SIGNAL(realtimeDataSignal(int,float,float)), this, SLOT(realtimeDataSlot(int,float,float)) );
-    connect(&m_graph, SIGNAL(infoDialogSignal(const QString&,const QString&)), this, SLOT(infoDialog(const QString&,const QString&)),
-            Qt::QueuedConnection);
-    connect(&m_graph, SIGNAL(criticalDialogSignal(const QString&,const QString&)), this, SLOT(criticalDialog(const QString&,const QString&)),
-            Qt::QueuedConnection);
 
     m_xHistory = m_settings.getFloat( "xHistory" );
 }
@@ -91,7 +87,13 @@ void MainWindow::realtimeDataSlot( int graphId , float x , float y ) {
 
     // Make key axis range scroll with the data (at a constant range size)
     m_ui->plot->xAxis->setRange( x , m_xHistory , Qt::AlignRight );
-    m_ui->plot->replot();
+    static uint64_t lastTime = 0;
+    static uint64_t currentTime;
+    currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    if ( currentTime - lastTime > 1000/30 ) {
+        m_ui->plot->replot();
+        lastTime = currentTime;
+    }
 
     m_uiMutex.unlock();
 }
