@@ -84,8 +84,7 @@ Graph::Graph( MainWindow* parentWindow ) :
     m_remoteIP = QString::fromUtf8( m_settings.getString( "robotIP" ).c_str() );
     m_dataPort = m_settings.getInt( "robotGraphPort" );
 
-    m_startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch()).count();
+    m_startTime = 0;
 
     connect( m_dataSocket , SIGNAL(readyRead()) ,
              this , SLOT(handleSocketData()) );
@@ -103,10 +102,10 @@ void Graph::reconnect() {
     m_curSelect = 0;
 
     // Attempt connection to remote data set host
-    if ( !m_dataSocket->isValid() ) {
+    if ( m_dataSocket->state() != QAbstractSocket::ConnectedState ) {
         m_dataSocket->connectToHost( m_remoteIP , m_dataPort );
 
-        if ( !m_dataSocket->waitForConnected( 1000 ) ) {
+        if ( !m_dataSocket->waitForConnected( 500 ) ) {
             QMessageBox::critical( m_window , QObject::tr("Connection Error") ,
                 QObject::tr("Connection to remote host failed") );
             return;
@@ -119,11 +118,11 @@ void Graph::reconnect() {
     int64_t sent = 0;
     while ( count < 16 ) {
         sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) , 16 );
-        if ( !m_dataSocket->isValid() || sent < 0 ) {
-            printf( "hi\n" );
+        if ( m_dataSocket->state() != QAbstractSocket::ConnectedState || sent < 0 ) {
             QMessageBox::critical( m_window , QObject::tr("Connection Error") ,
-                QObject::tr("Unexpected disconnection from remote host") );
+                QObject::tr("Asking remote host for graph list failed") );
             m_dataSocket->disconnect();
+            m_startTime = 0;
             return;
         }
         else {
@@ -136,7 +135,6 @@ void Graph::addData( unsigned int index , const Pair& data ) {
     m_dataSets[index].push_back( data );
 
     m_window->realtimeDataSlot( index , data.first , data.second );
-    //emit realtimeDataSignal( index , data.first , data.second );
 }
 
 void Graph::clearAllData() {
@@ -158,7 +156,7 @@ void Graph::createGraph( const std::string& name , QColor color ) {
     customPlot->graph()->setAntialiasedFill( false );
 
     QPen pen( color );
-    pen.setWidth( 1 );
+    pen.setWidth( 2 );
     customPlot->graph()->setPen( pen );
 }
 
@@ -265,11 +263,12 @@ void Graph::handleSocketData() {
         int64_t received = 0;
         while ( count < sizeof(m_buffer) ) {
             received = m_dataSocket->read( m_buffer , sizeof(m_buffer) );
-            if ( !m_dataSocket->isValid() || received < 0 ) {
+            if ( m_dataSocket->state() != QAbstractSocket::ConnectedState || received < 0 ) {
                 QMessageBox::critical( m_window ,
                     QObject::tr("Connection Error") ,
-                    QObject::tr("Unexpected disconnection from remote host") );
+                    QObject::tr("Receiving data from remote host failed") );
                 m_dataSocket->disconnect();
+                m_startTime = 0;
                 return;
             }
             else {
@@ -298,6 +297,11 @@ void Graph::handleSocketData() {
             std::memcpy( &ytmp , &m_recvData.y , sizeof(m_recvData.y) );
             ytmp = qFromBigEndian<qint32>( ytmp );
             std::memcpy( &m_recvData.y , &ytmp , sizeof(m_recvData.y) );
+
+            // Set time offset based on remote clock
+            if ( m_startTime == 0 ) {
+                m_startTime = m_recvData.x;
+            }
 
             /* Add data to appropriate data set; store point in
              * temps b/c references can't be made of packed
@@ -362,11 +366,12 @@ void Graph::sendGraphChoices() {
         while ( count < 16 ) {
             sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) ,
                                         16 );
-            if ( !m_dataSocket->isValid() || sent < 0 ) {
+            if ( m_dataSocket->state() != QAbstractSocket::ConnectedState || sent < 0 ) {
                 QMessageBox::critical( m_window ,
                     QObject::tr("Connection Error") ,
-                    QObject::tr("Unexpected disconnection from remote host") );
+                    QObject::tr("Sending graph choices to remote host failed") );
                 m_dataSocket->disconnect();
+                m_startTime = 0;
                 return;
             }
             else {

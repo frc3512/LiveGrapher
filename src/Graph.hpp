@@ -49,18 +49,18 @@ typedef std::list<Pair> DataSet;
  * Receiving packets:
  *     id can be one of two values with its respective packet structure:
  *
- *     'l': Contains name of data set on host
- *     struct packet_t {
- *         char id;
- *         char graphName[15];
- *     }
- *
- *     'p': Contains point of data from given data set
+ *     'd': Contains point of data from given data set
  *     struct packet_t {
  *         char id;
  *         char graphName[15];
  *         uint64_t x;
  *         float y;
+ *     }
+ *
+ *     'l': Contains name of data set on host
+ *     struct packet_t {
+ *         char id;
+ *         char graphName[15];
  *     }
  */
 struct [[gnu::packed]] packet_t {
