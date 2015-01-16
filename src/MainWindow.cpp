@@ -60,7 +60,7 @@ void MainWindow::criticalDialog( const QString& title , const QString& text ) {
 
 void MainWindow::about() {
     QMessageBox::about( this , tr("About LiveGrapher") ,
-            tr("<br>LiveGrapher, Version 1.0<br>"
+            tr("<br>LiveGrapher, Version 2.0<br>"
                "Copyright &copy;2013-2015 FRC Team 3512<br>"
                "FRC Team 3512<br>"
                "All Rights Reserved") );
@@ -98,7 +98,7 @@ void MainWindow::realtimeDataSlot( int graphId , float x , float y ) {
     static uint64_t currentTime;
     currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count();
-    if ( currentTime - lastTime > 1000/30 ) {
+    if ( currentTime - lastTime > 1000/15 ) {
         m_ui->plot->replot();
         lastTime = currentTime;
     }
