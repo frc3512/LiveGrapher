@@ -24,44 +24,21 @@ class QTcpSocket;
 typedef std::pair<float , float> Pair;
 typedef std::list<Pair> DataSet;
 
-/* Graph Packet Structure
+/* Sending packets:
+ * 'c': Asks host to start sending data set of given name
+ * 'd': Asks host to stop sending data set of given name
  *
- * Sending packets:
- *     id can be one of three values with its respective packet structure:
+ * Note: Only the first 16 bytes of the packet are used for 'c' and 'd' packets.
+ *       The rest are padding.
  *
- *     'c': Asks host to start sending data set of given name
- *     struct packet_t {
- *         char id;
- *         char graphName[15];
- *     }
+ * 'l': Asks host to send list of names of available data sets
  *
- *     'd': Asks host to stop sending data set of given name
- *     struct packet_t {
- *         char id;
- *         char graphName[15];
- *     }
- *
- *     'l': Asks host to send list of names of available data sets
- *     struct packet_t {
- *         char id;
- *     }
+ * Note: Only the first byte is used by remote host in 'l' packet. There are 15
+ *       more bytes sent in that packet type, which are padding.
+ *       padding.
  *
  * Receiving packets:
- *     id can be one of two values with its respective packet structure:
- *
- *     'd': Contains point of data from given data set
- *     struct packet_t {
- *         char id;
- *         char graphName[15];
- *         uint64_t x;
- *         float y;
- *     }
- *
- *     'l': Contains name of data set on host
- *     struct packet_t {
- *         char id;
- *         char graphName[15];
- *     }
+ * 'd': Contains point of data from given data set
  */
 struct [[gnu::packed]] packet_t {
     char id;
@@ -70,12 +47,18 @@ struct [[gnu::packed]] packet_t {
     float y;
 };
 
+/* Receiving packets:
+ * 'l': Contains name of data set on host
+ */
 struct [[gnu::packed]] packet_list_t {
     char id;
     char graphName[15];
     char eof;
     char padding[11];
 };
+
+static_assert( sizeof(struct packet_t) == sizeof(struct packet_list_t) ,
+               "packet structs are not same size" );
 
 class MainWindow;
 class SelectDialog;
