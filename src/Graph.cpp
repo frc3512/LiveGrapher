@@ -96,7 +96,7 @@ Graph::~Graph() {
 
 void Graph::reconnect() {
     std::memset( &m_recvData , 0 , sizeof(m_recvData) );
-    std::memset( &m_listData , 0 ,sizeof(m_listData) );
+    std::memset( &m_listData , 0 , sizeof(m_listData) );
 
     // Reset list of data set recv statuses
     m_curSelect = 0;
@@ -118,7 +118,8 @@ void Graph::reconnect() {
     int64_t sent = 0;
     while ( count < 16 ) {
         sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) , 16 );
-        if ( m_dataSocket->state() != QAbstractSocket::ConnectedState || sent < 0 ) {
+        if ( m_dataSocket->state() != QAbstractSocket::ConnectedState ||
+                sent < 0 ) {
             QMessageBox::critical( m_window , QObject::tr("Connection Error") ,
                 QObject::tr("Asking remote host for graph list failed") );
             m_dataSocket->disconnect();
@@ -212,6 +213,23 @@ bool Graph::saveAsCSV() {
 
         size_t setsOpen = m_dataSets.size();
 
+        // Write axis and data labels to file
+        for ( size_t j = 0 ; j < m_dataSets.size() ; j++ ) {
+            if ( j == 0 ) {
+                // X axis label
+                saveFile << "Time (s)" << ",";
+            }
+            saveFile << m_graphNames[j];
+
+            // If last Y axis label hasn't been written yet
+            if ( j + 1 < m_dataSets.size() ) {
+                saveFile << ",";
+            }
+            else {
+                saveFile << "\n";
+            }
+        }
+
         // While there is still data in at least one data set to add to the file
         while ( setsOpen > 0 ) {
             setsOpen = m_dataSets.size();
@@ -219,7 +237,13 @@ bool Graph::saveAsCSV() {
             for ( size_t j = 0 ; j < m_dataSets.size() ; j++ ) {
                 // If there are still points in this data set to add
                 if ( sets[j] != m_dataSets[j].end() ) {
-                    saveFile << sets[j]->first << "," << sets[j]->second;
+                    /* Only write X values of first data set since X values of
+                     * all data sets are identical.
+                     */
+                    if ( j == 0 ) {
+                        saveFile << sets[j]->first << ",";
+                    }
+                    saveFile << sets[j]->second;
 
                     // Increment to next point in data set
                     sets[j]++;
@@ -338,10 +362,8 @@ void Graph::handleSocketData() {
 }
 
 void Graph::sendGraphChoices() {
-    // Remove old graphs before creating new ones
-    while ( m_dataSets.size() > 0 ) {
-        removeGraph( m_dataSets.size() - 1 );
-    }
+    // If true, graphs aren't created yet
+    bool makeGraphs = m_window->m_ui->plot->graphCount() == 0;
 
     /* Send updated status on streams to which to connect based on the bit
      * array
@@ -366,7 +388,8 @@ void Graph::sendGraphChoices() {
         while ( count < 16 ) {
             sent = m_dataSocket->write( reinterpret_cast<char*>(&m_recvData) ,
                                         16 );
-            if ( m_dataSocket->state() != QAbstractSocket::ConnectedState || sent < 0 ) {
+            if ( m_dataSocket->state() != QAbstractSocket::ConnectedState ||
+                    sent < 0 ) {
                 QMessageBox::critical( m_window ,
                     QObject::tr("Connection Error") ,
                     QObject::tr("Sending graph choices to remote host failed") );
@@ -384,8 +407,10 @@ void Graph::sendGraphChoices() {
          * around 360 degrees, V is decremented by 0.25. S is always 1.
          * This algorithm gives 25 possible values, one being black.
          */
-        constexpr unsigned int parts = 3;
-        createGraph( m_graphNames[i] , HSVtoRGB( 360 / parts * i % 360 , 1 ,
-            1 - 0.25 * std::floor( i / parts ) ) );
-    }
+        if ( makeGraphs ) {
+            constexpr unsigned int parts = 3;
+            createGraph( m_graphNames[i] , HSVtoRGB( 360 / parts * i % 360 ,
+                1 , 1 - 0.25 * std::floor( i / parts ) ) );
+        }
+     }
 }
