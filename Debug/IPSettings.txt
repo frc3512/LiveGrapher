@@ -2,7 +2,4 @@
 robotIP           = 127.0.0.1
 robotGraphPort    = 3513
 
-xMax              = 0
-yMax              = 100
-
 xHistory          = 4.5
