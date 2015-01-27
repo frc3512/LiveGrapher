@@ -8,7 +8,6 @@
 #define GRAPH_HPP
 
 #include "Settings.hpp"
-#include <list>
 #include <map>
 #include <vector>
 #include <string>
@@ -21,8 +20,7 @@
 
 class QTcpSocket;
 
-typedef std::pair<float , float> Pair;
-typedef std::list<Pair> DataSet;
+typedef std::vector<std::pair<float,float>> DataSet;
 
 /* Sending packets:
  * 'c': Asks host to start sending data set of given name
@@ -74,7 +72,7 @@ public:
     void reconnect();
 
     // Add data point to graph at given index (push back)
-    void addData( unsigned int index , const Pair& point );
+    void addData( unsigned int index , const std::pair<float,float>&& point );
 
     // Removes all previous data from all graphs
     void clearAllData();

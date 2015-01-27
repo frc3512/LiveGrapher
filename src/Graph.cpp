@@ -132,9 +132,8 @@ void Graph::reconnect() {
     }
 }
 
-void Graph::addData( unsigned int index , const Pair& data ) {
+void Graph::addData( unsigned int index , const std::pair<float,float>&& data ) {
     m_dataSets[index].push_back( data );
-
     m_window->realtimeDataSlot( index , data.first , data.second );
 }
 
@@ -149,7 +148,7 @@ void Graph::clearAllData() {
 }
 
 void Graph::createGraph( const std::string& name , QColor color ) {
-    m_dataSets.push_back( DataSet() );
+    m_dataSets.emplace_back();
 
     QCustomPlot* customPlot = m_window->m_ui->plot;
     customPlot->addGraph();
@@ -178,11 +177,10 @@ bool Graph::saveAsCSV() {
     }
 
     /* ===== Create unique name for file ===== */
+    using clock = std::chrono::system_clock;
     typedef std::chrono::duration<int,std::ratio_multiply<
             std::chrono::hours::period, std::ratio<24>>::type> days;
-    std::chrono::system_clock::time_point now =
-            std::chrono::system_clock::now();
-    std::chrono::system_clock::duration tp = now.time_since_epoch();
+    clock::duration tp = clock::now().time_since_epoch();
     days d = std::chrono::duration_cast<days>(tp);
     tp -= d;
     std::chrono::hours h = std::chrono::duration_cast<std::chrono::hours>(tp);
@@ -205,11 +203,8 @@ bool Graph::saveAsCSV() {
     std::ofstream saveFile( buf , std::ios_base::trunc );
 
     if ( saveFile.is_open() ) {
-        std::vector<std::list<Pair>::iterator> sets( m_dataSets.size() );
-
-        for ( unsigned int i = 0 ; i < m_dataSets.size() ; i++ ) {
-            sets[i] = m_dataSets[i].begin();
-        }
+        // Tracks positions in each data set; start at 0 for each
+        std::vector<size_t> sets( m_dataSets.size() , 0 );
 
         size_t setsOpen = m_dataSets.size();
 
@@ -236,14 +231,14 @@ bool Graph::saveAsCSV() {
 
             for ( size_t j = 0 ; j < m_dataSets.size() ; j++ ) {
                 // If there are still points in this data set to add
-                if ( sets[j] != m_dataSets[j].end() ) {
+                if ( sets[j] != m_dataSets[j].size() ) {
                     /* Only write X values of first data set since X values of
                      * all data sets are identical.
                      */
                     if ( j == 0 ) {
-                        saveFile << sets[j]->first << ",";
+                        saveFile << m_dataSets[j][sets[j]].first << ",";
                     }
-                    saveFile << sets[j]->second;
+                    saveFile << m_dataSets[j][sets[j]].second;
 
                     // Increment to next point in data set
                     sets[j]++;
@@ -334,7 +329,7 @@ void Graph::handleSocketData() {
             decltype(m_recvData.x) x = m_recvData.x - m_startTime;
             decltype(m_recvData.y) y = m_recvData.y;
             addData( m_graphNamesMap[m_recvData.graphName] ,
-                Pair( x/1000.f , y ) );
+                std::make_pair( x/1000.f , y ) );
             /* ========================================= */
         }
         else if ( m_buffer[0] == 'l' ) {
