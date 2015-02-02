@@ -13,18 +13,18 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit MainWindow( QWidget* parent = nullptr );
+    explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
 public slots:
-    void infoDialog( const QString& title , const QString& text );
-    void criticalDialog( const QString& title , const QString& text );
+    void infoDialog(const QString& title, const QString& text);
+    void criticalDialog(const QString& title, const QString& text);
 
 private slots:
     void about();
     void reconnect();
     void clearAllData();
-    void realtimeDataSlot( int graphId , float x , float y );
+    void realtimeDataSlot(int graphId, float x, float y);
 
 private:
     Ui::MainWindow* m_ui;
@@ -38,3 +38,4 @@ private:
 };
 
 #endif // MAIN_WINDOW_HPP
+

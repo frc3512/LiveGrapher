@@ -1,8 +1,8 @@
-//=============================================================================
-//File Name: Graph.hpp
-//Description: Manages a graph in Qt
-//Author: FRC Team 3512, Spartatroniks
-//=============================================================================
+// =============================================================================
+// File Name: Graph.hpp
+// Description: Manages a graph in Qt
+// Author: FRC Team 3512, Spartatroniks
+// =============================================================================
 
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
@@ -20,7 +20,7 @@
 
 class QTcpSocket;
 
-typedef std::vector<std::pair<float,float>> DataSet;
+typedef std::vector<std::pair<float, float>> DataSet;
 
 /* Sending packets:
  * 'c': Asks host to start sending data set of given name
@@ -38,7 +38,7 @@ typedef std::vector<std::pair<float,float>> DataSet;
  * Receiving packets:
  * 'd': Contains point of data from given data set
  */
-struct [[gnu::packed]] packet_t {
+struct[[gnu::packed]] packet_t{
     char id;
     char graphName[15];
     uint64_t x;
@@ -48,15 +48,15 @@ struct [[gnu::packed]] packet_t {
 /* Receiving packets:
  * 'l': Contains name of data set on host
  */
-struct [[gnu::packed]] packet_list_t {
+struct[[gnu::packed]] packet_list_t{
     char id;
     char graphName[15];
     char eof;
     char padding[11];
 };
 
-static_assert( sizeof(struct packet_t) == sizeof(struct packet_list_t) ,
-               "packet structs are not same size" );
+static_assert(sizeof(struct packet_t) == sizeof(struct packet_list_t),
+              "packet structs are not same size");
 
 class MainWindow;
 class SelectDialog;
@@ -65,23 +65,23 @@ class Graph : public QObject {
     Q_OBJECT
 
 public:
-    explicit Graph( MainWindow* parentWindow );
+    explicit Graph(MainWindow* parentWindow);
     virtual ~Graph();
 
     // Kills receiving thread and restarts it; this function will block
     void reconnect();
 
     // Add data point to graph at given index (push back)
-    void addData( unsigned int index , const std::pair<float,float>&& point );
+    void addData(unsigned int index, const std::pair<float, float>&& point);
 
     // Removes all previous data from all graphs
     void clearAllData();
 
     // Create another set of data to graph
-    void createGraph( const std::string& name , QColor color );
+    void createGraph(const std::string& name, QColor color);
 
     // Remove graph at the given index
-    void removeGraph( unsigned int index );
+    void removeGraph(unsigned int index);
 
 public slots:
     /* Saves all graph data to CSV in the executable's directory
@@ -90,7 +90,7 @@ public slots:
     bool saveAsCSV();
 
 signals:
-    void realtimeDataSignal( int graphId , float x , float y );
+    void realtimeDataSignal(int graphId, float x, float y);
 
 private slots:
     void handleSocketData();
@@ -111,7 +111,7 @@ private:
     uint64_t m_curSelect;
 
     // Provides way to get a data set's index given the name
-    std::map<std::string , unsigned char> m_graphNamesMap;
+    std::map<std::string, unsigned char> m_graphNamesMap;
 
     QTcpSocket* m_dataSocket;
 
@@ -128,3 +128,4 @@ private:
 };
 
 #endif // GRAPH_HPP
+
