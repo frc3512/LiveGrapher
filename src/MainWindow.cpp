@@ -75,31 +75,39 @@ void MainWindow::clearAllData() {
 }
 
 void MainWindow::realtimeDataSlot(int graphId, float x, float y) {
-    // Add data to lines
-    m_ui->plot->graph(graphId)->addData(x, y);
+    QCustomPlot* plot = m_ui->plot;
 
-    // Remove data of lines that are outside visible range
-    for (int i = 0; i < m_ui->plot->graphCount(); i++) {
-        m_ui->plot->graph(i)->removeDataBefore(x - m_xHistory);
+    // Don't draw anything if there are no graphs
+    if (plot->graphCount() == 0) {
+        return;
     }
 
-    // Rescale value (vertical) axis to fit the current data
-    if (m_ui->plot->graphCount() > 0) {
-        m_ui->plot->graph(0)->rescaleValueAxis();
+    // Add data to lines
+    plot->graph(graphId)->addData(x, y);
 
-        for (int i = 1; i < m_ui->plot->graphCount(); i++) {
-            m_ui->plot->graph(i)->rescaleValueAxis(true);
+    for (int i = 0; i < plot->graphCount(); i++) {
+        // Rescale value (vertical) axis to fit the current data
+        if (i == 0) {
+            plot->graph(i)->rescaleValueAxis();
         }
+        else {
+            plot->graph(i)->rescaleValueAxis(true);
+        }
+
+        // Remove data of lines that are outside visible range
+        plot->graph(i)->removeDataBefore(x - m_xHistory);
     }
 
     // Make key axis range scroll with the data (at a constant range size)
-    m_ui->plot->xAxis->setRange(x, m_xHistory, Qt::AlignRight);
+    plot->xAxis->setRange(x, m_xHistory, Qt::AlignRight);
+
     static uint64_t lastTime = 0;
     static uint64_t currentTime;
     currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
-    if (currentTime - lastTime > 1000 / 15) {
-        m_ui->plot->replot();
+
+    if (currentTime - lastTime > 1000 / 30) {
+        plot->replot();
         lastTime = currentTime;
     }
 }

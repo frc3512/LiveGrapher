@@ -156,9 +156,9 @@ void Graph::createGraph(const std::string& name, QColor color) {
     customPlot->addGraph();
     customPlot->graph()->setName(QString::fromUtf8(name.c_str()));
     customPlot->graph()->setAntialiasedFill(false);
+    customPlot->setNoAntialiasingOnDrag(true);
 
     QPen pen(color);
-    pen.setWidth(2);
     customPlot->graph()->setPen(pen);
 }
 
