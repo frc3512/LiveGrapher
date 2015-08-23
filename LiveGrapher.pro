@@ -10,7 +10,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets network printsupport
 
 TARGET = LiveGrapher
 TEMPLATE = app
-CONFIG += c++11
+CONFIG += c++14
 
 SOURCES +=\
     src/Graph.cpp \

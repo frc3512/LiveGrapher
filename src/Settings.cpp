@@ -9,12 +9,8 @@
 #include <fstream>
 #include <iostream>
 
-Settings::Settings(std::string fileName) : m_fileName(fileName),
-                                           m_index(0) {
+Settings::Settings(std::string fileName) : m_fileName(fileName) {
     update();
-}
-
-Settings::~Settings() {
 }
 
 void Settings::update() {

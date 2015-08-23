@@ -3,18 +3,15 @@
 
 #include <QMainWindow>
 #include <mutex>
+#include <memory>
 #include "Graph.hpp"
-
-namespace Ui {
-class MainWindow;
-}
+#include "ui_MainWindow.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
     explicit MainWindow(QWidget* parent = nullptr);
-    ~MainWindow();
 
 public slots:
     void infoDialog(const QString& title, const QString& text);
@@ -27,7 +24,7 @@ private slots:
     void realtimeDataSlot(int graphId, float x, float y);
 
 private:
-    Ui::MainWindow* m_ui;
+    std::unique_ptr<Ui::MainWindow> m_ui;
 
     Graph m_graph;
 
