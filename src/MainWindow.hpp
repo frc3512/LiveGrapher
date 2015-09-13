@@ -29,7 +29,7 @@ private:
     Graph m_graph;
 
     Settings m_settings;
-    float m_xHistory;
+    double m_xHistory;
 
     friend class Graph;
 };

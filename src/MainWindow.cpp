@@ -42,7 +42,7 @@ MainWindow::MainWindow(QWidget* parent) :
     connect(&m_graph, SIGNAL(realtimeDataSignal(int, float, float)),
             this, SLOT(realtimeDataSlot(int, float, float)));
 
-    m_xHistory = m_settings.getFloat("xHistory");
+    m_xHistory = m_settings.getDouble("xHistory");
 }
 
 void MainWindow::infoDialog(const QString& title, const QString& text) {
