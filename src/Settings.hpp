@@ -1,7 +1,6 @@
 // =============================================================================
-// File Name: Settings.hpp
 // Description: Opens a given file and creates an STL map of its name-value
-//             pairs
+//              pairs
 // Author: FRC Team 3512, Spartatroniks
 // =============================================================================
 

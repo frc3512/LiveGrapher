@@ -1,9 +1,3 @@
-// =============================================================================
-// File Name: Graph.hpp
-// Description: Manages a graph in Qt
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
-
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 

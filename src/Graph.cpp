@@ -1,9 +1,3 @@
-// =============================================================================
-// File Name: Graph.cpp
-// Description: Manages a graph in Qt
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
-
 #include <fstream>
 
 #include <cmath>
