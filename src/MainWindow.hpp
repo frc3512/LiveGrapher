@@ -35,4 +35,3 @@ private:
 };
 
 #endif // MAIN_WINDOW_HPP
-

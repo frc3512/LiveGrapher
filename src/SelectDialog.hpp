@@ -26,4 +26,3 @@ private:
 };
 
 #endif // SELECT_DIALOG_HPP
-

@@ -1,7 +1,6 @@
-#include <fstream>
-
 #include <cmath>
 #include <cstring>
+#include <fstream>
 
 #include "Graph.hpp"
 #include "MainWindow.hpp"
@@ -173,20 +172,17 @@ bool Graph::saveAsCSV() {
     }
 
     /* ===== Create unique name for file ===== */
-    using clock = std::chrono::system_clock;
     typedef std::chrono::duration<int, std::ratio_multiply<
                                       std::chrono::hours::period,
                                       std::ratio<24>>::type> days;
-    clock::duration tp = clock::now().time_since_epoch();
-    days d = std::chrono::duration_cast<days>(tp);
+    auto tp = std::chrono::system_clock::now().time_since_epoch();
+    auto d = std::chrono::duration_cast<days>(tp);
     tp -= d;
-    std::chrono::hours h = std::chrono::duration_cast<std::chrono::hours>(tp);
+    auto h = std::chrono::duration_cast<std::chrono::hours>(tp);
     tp -= h;
-    std::chrono::minutes m =
-        std::chrono::duration_cast<std::chrono::minutes>(tp);
+    auto m = std::chrono::duration_cast<std::chrono::minutes>(tp);
     tp -= m;
-    std::chrono::seconds s =
-        std::chrono::duration_cast<std::chrono::seconds>(tp);
+    auto s = std::chrono::duration_cast<std::chrono::seconds>(tp);
     tp -= s;
 
     char buf[128];
@@ -412,4 +408,3 @@ void Graph::sendGraphChoices() {
         }
     }
 }
-

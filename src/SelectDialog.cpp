@@ -49,6 +49,5 @@ SelectDialog::SelectDialog(std::vector<std::string>& graphNames,
 }
 
 void SelectDialog::selectGraph(int val) {
-    (m_graph->m_curSelect) ^= (1 << val);
+    m_graph->m_curSelect ^= (1 << val);
 }
-

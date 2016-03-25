@@ -1,5 +1,5 @@
 #LiveGrapher sends to this
-robotIP           = 127.0.0.1
+robotIP           = 10.35.12.2
 robotGraphPort    = 3513
 
 xHistory          = 4.5

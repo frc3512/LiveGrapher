@@ -106,4 +106,3 @@ void MainWindow::realtimeDataSlot(int graphId, float x, float y) {
         lastTime = currentTime;
     }
 }
-

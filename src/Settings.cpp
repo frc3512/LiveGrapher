@@ -123,4 +123,3 @@ std::string Settings::extractValue() {
 
     return m_rawStr.substr(valueStart, m_index - valueStart);
 }
-
