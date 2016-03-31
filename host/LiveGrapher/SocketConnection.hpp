@@ -24,19 +24,19 @@ public:
     SocketConnection(const SocketConnection&) = delete;
     SocketConnection& operator=(const SocketConnection&) = delete;
 
+    int recvData(char* buf, size_t length);
     int readPackets();
-    void processPacket(std::string& buf);
     void sendList();
     void writePackets();
+
     template <class T>
     void queueWrite(T& buf);
 
-    // Contains all graphs
-    static std::vector<std::string> graphNames;
+    void queueWrite(const char* buf, size_t length);
 
     int fd;
     uint8_t selectflags = Read | Error;
-    std::vector<std::string> datasets;
+    std::vector<uint8_t> datasets;
 
 private:
     int m_ipcfd_w;
@@ -46,11 +46,6 @@ private:
     size_t m_writebufoffset = 0; // How much has been written so far
     bool m_writedone = true;
     std::queue<std::string> m_writequeue;
-
-    // Read buffer currently being read
-    std::string m_readbuf;
-    size_t m_readbufoffset = 0;
-    bool m_readdone = true;
 };
 
 #include "SocketConnection.inl"
