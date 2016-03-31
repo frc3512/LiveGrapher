@@ -58,8 +58,8 @@ void MainWindow::criticalDialog(const QString& title, const QString& text) {
 
 void MainWindow::about() {
     QMessageBox::about(this, tr("About LiveGrapher"),
-                       tr("<br>LiveGrapher, Version 2.0<br>"
-                          "Copyright &copy;2013-2015 FRC Team 3512<br>"
+                       tr("<br>LiveGrapher 3.0<br>"
+                          "Copyright &copy;2013-2016 FRC Team 3512<br>"
                           "FRC Team 3512<br>"
                           "All Rights Reserved"));
 }
