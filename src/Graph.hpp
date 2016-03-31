@@ -1,56 +1,95 @@
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
-#include "Settings.hpp"
-#include <map>
-#include <vector>
-#include <string>
-#include <mutex>
 #include <cstdint>
+#include <string>
+#include <memory>
+#include <mutex>
+#include <utility>
+#include <vector>
 
-#include <QObject>
 #include <QColor>
 #include <QHostAddress>
+#include <QObject>
+#include <QTcpSocket>
 
-class QTcpSocket;
+#include "Settings.hpp"
 
 typedef std::vector<std::pair<float, float>> DataSet;
 
-/* Sending packets:
- * 'c': Asks host to start sending data set of given name
- * 'd': Asks host to stop sending data set of given name
+/* '0b00' type outbound packet
+ *   > uint8_t packetID : 2
+ *    '0b00': Asks host to start sending data set of given name
+ *   > uint8_t graphID : 6
+ *     Contains ID of graph
  *
- * Note: Only the first 16 bytes of the packet are used for 'c' and 'd' packets.
- *       The rest are padding.
+ * '0b01' type outbound packet
+ *   > uint8_t packetID : 2
+ *     '0b01': Asks host to stop sending data set of given name
+ *   > uint8_t graphID : 6
+ *     Contains ID of graph
  *
- * 'l': Asks host to send list of names of available data sets
- *
- * Note: Only the first byte is used by remote host in 'l' packet. There are 15
- *       more bytes sent in that packet type, which are padding.
- *       padding.
- *
- * Receiving packets:
- * 'd': Contains point of data from given data set
+ * '0b10' type outbound packet
+ *   > uint8_t packetID : 2
+ *     '0b10': Asks host to send list of names of available data sets
+ *   > uint8_t graphID : 6
+ *     Not used. Should be set to 0
  */
-struct[[gnu::packed]] packet_t{
-    char id;
-    char graphName[15];
+struct[[gnu::packed]] OutboundPacket{
+    uint8_t ID;
+};
+
+constexpr uint8_t k_outConnectPacket = 0b00 << 6;
+constexpr uint8_t k_outDisconnectPacket = 0b01 << 6;
+constexpr uint8_t k_outListPacket = 0b10 << 6;
+
+/* '0b00' type inbound packet
+ *   > uint8_t packetID : 2
+ *     '0b00': Contains point of data from given data set
+ *   > uint8_t graphID : 6
+ *     Contains ID of graph
+ *   > uint64_t x
+ *     X coordinate of graph point
+ *   > float y
+ *     Y coordinate of graph point
+ *
+ * '0b01' type inbound packet
+ *   > uint8_t packetID : 2
+ *     '0b01': Contains name of data set on host
+ *   > uint8_t graphID : 6
+ *     Contains ID of graph
+ *   > uint8_t length
+ *     Contains length of name. Max length is 255.
+ *   > uint8_t name[]
+ *     Contains name which is 'length' bytes long (not NULL terminated)
+ *   > uint8_t eof
+ *     1 if this graph name is the last; 0 otherwise
+ */
+struct[[gnu::packed]] InboundDataPacket{
+    uint8_t ID;
     uint64_t x;
     float y;
 };
 
-/* Receiving packets:
- * 'l': Contains name of data set on host
- */
-struct[[gnu::packed]] packet_list_t{
-    char id;
-    char graphName[15];
+struct InboundListPacket {
+    uint8_t ID;
+    uint8_t length;
+    std::string name;
     char eof;
-    char padding[11];
 };
 
-static_assert(sizeof(struct packet_t) == sizeof(struct packet_list_t),
-              "packet structs are not same size");
+constexpr uint8_t k_inDataPacket = 0b00 << 6;
+constexpr uint8_t k_inListPacket = 0b01 << 6;
+
+enum class ReceiveState {
+    ID,
+    Data,
+    NameLength,
+    Name,
+    EndOfFile,
+    DataComplete,
+    ListComplete
+};
 
 class MainWindow;
 class SelectDialog;
@@ -60,7 +99,7 @@ class Graph : public QObject {
 
 public:
     explicit Graph(MainWindow* parentWindow);
-    virtual ~Graph();
+    virtual ~Graph() = default;
 
     // Kills receiving thread and restarts it; this function will block
     void reconnect();
@@ -93,30 +132,45 @@ private slots:
 private:
     MainWindow* m_window;
 
-    Settings m_settings;
+    Settings m_settings{"IPSettings.txt"};
 
     // Contains graph data to plot
     std::vector<DataSet> m_dataSets;
 
     // Contains names for all graphs available on host
-    std::vector<std::string> m_graphNames;
+    std::vector<std::pair<uint8_t, std::string>> m_graphNames;
 
     // Each bit holds receive state of data set (1 = recv, 0 = not recv)
-    uint64_t m_curSelect;
+    uint64_t m_curSelect = 0;
 
-    // Provides way to get a data set's index given the name
-    std::map<std::string, unsigned char> m_graphNamesMap;
-
-    QTcpSocket* m_dataSocket;
+    std::unique_ptr<QTcpSocket> m_dataSocket;
 
     QHostAddress m_remoteIP;
     unsigned short m_dataPort;
 
-    uint64_t m_startTime;
+    uint64_t m_startTime = 0;
 
-    char m_buffer[sizeof(struct packet_t)];
-    struct packet_t m_recvData;
-    struct packet_list_t m_listData;
+    OutboundPacket m_outPacket;
+    InboundDataPacket m_inDataPacket;
+    InboundListPacket m_inListPacket;
+    ReceiveState m_state = ReceiveState::ID;
+
+    // Used for endianness conversions
+    uint64_t xtmp;
+    uint32_t ytmp;
+
+    /* Sends block of data to host. Returns 'true' on success or 'false' on
+     * failure
+     */
+    bool sendData(void* data, size_t length);
+
+    /* Receives block of data from host. This will block if not enough data is
+     * available to read.
+     */
+    bool recvData(void* data, size_t length);
+
+    static inline uint8_t packetID(uint8_t id);
+    static inline uint8_t graphID(uint8_t id);
 
     friend class SelectDialog;
 };

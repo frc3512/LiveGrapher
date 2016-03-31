@@ -1,5 +1,7 @@
 #include "MainWindow.hpp"
 
+using namespace std::chrono_literals;
+
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
     m_graph(this),
@@ -43,6 +45,8 @@ MainWindow::MainWindow(QWidget* parent) :
             this, SLOT(realtimeDataSlot(int, float, float)));
 
     m_xHistory = m_settings.getDouble("xHistory");
+
+    m_lastTime = std::chrono::steady_clock::now();
 }
 
 void MainWindow::infoDialog(const QString& title, const QString& text) {
@@ -55,8 +59,8 @@ void MainWindow::criticalDialog(const QString& title, const QString& text) {
 
 void MainWindow::about() {
     QMessageBox::about(this, tr("About LiveGrapher"),
-                       tr("<br>LiveGrapher, Version 2.0<br>"
-                          "Copyright &copy;2013-2015 FRC Team 3512<br>"
+                       tr("<br>LiveGrapher 3.0<br>"
+                          "Copyright &copy;2013-2016 FRC Team 3512<br>"
                           "FRC Team 3512<br>"
                           "All Rights Reserved"));
 }
@@ -80,17 +84,21 @@ void MainWindow::realtimeDataSlot(int graphId, float x, float y) {
     // Add data to lines
     plot->graph(graphId)->addData(x, y);
 
-    for (int i = 0; i < plot->graphCount(); i++) {
-        // Rescale value (vertical) axis to fit the current data
-        if (i == 0) {
-            plot->graph(i)->rescaleValueAxis();
-        }
-        else {
-            plot->graph(i)->rescaleValueAxis(true);
+    if (std::chrono::steady_clock::now() - m_lastTime > 250ms) {
+        for (int i = 0; i < plot->graphCount(); i++) {
+            // Rescale value (vertical) axis to fit the current data
+            if (i == 0) {
+                plot->graph(i)->rescaleValueAxis();
+            }
+            else {
+                plot->graph(i)->rescaleValueAxis(true);
+            }
+
+            // Remove data of lines that are outside visible range
+            // plot->graph(i)->removeDataBefore(x - m_xHistory);
         }
 
-        // Remove data of lines that are outside visible range
-        plot->graph(i)->removeDataBefore(x - m_xHistory);
+        m_lastTime = std::chrono::steady_clock::now();
     }
 
     // Make key axis range scroll with the data (at a constant range size)

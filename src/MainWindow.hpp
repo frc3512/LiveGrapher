@@ -1,9 +1,12 @@
 #ifndef MAIN_WINDOW_HPP
 #define MAIN_WINDOW_HPP
 
-#include <QMainWindow>
+#include <chrono>
 #include <mutex>
 #include <memory>
+
+#include <QMainWindow>
+
 #include "Graph.hpp"
 #include "ui_MainWindow.h"
 
@@ -30,6 +33,9 @@ private:
 
     Settings m_settings;
     double m_xHistory;
+
+    // Used to limit rate of recalculation of graph range
+    std::chrono::steady_clock::time_point m_lastTime;
 
     friend class Graph;
 };

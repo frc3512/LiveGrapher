@@ -3,6 +3,7 @@
 *.o
 *.exe
 LiveGrapher
+!LiveGrapher/
 *.swp
 
 Makefile
