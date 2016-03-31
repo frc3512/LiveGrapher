@@ -6,6 +6,7 @@
 #include "GraphHost.hpp"
 
 #include <cstring>
+#include <algorithm>
 
 #ifdef __VXWORKS__
 
@@ -70,9 +71,9 @@ GraphHost::~GraphHost() {
     close(m_ipcfd_w);
 }
 
-int GraphHost::GraphData(float value, std::string dataset) {
+bool GraphHost::GraphData(float value, std::string dataset) {
     if (!m_running) {
-        return -1;
+        return false;
     }
 
     // This will only work if ints are the same size as floats
@@ -82,46 +83,43 @@ int GraphHost::GraphData(float value, std::string dataset) {
     m_currentTime = duration_cast<milliseconds>(
         system_clock::now().time_since_epoch()).count();
 
-    struct graph_payload_t payload;
-    decltype(m_currentTime)xtmp;
-    uint32_t ytmp;
+    auto i = m_graphList.find(dataset);
 
-    // Zero the payload structure
-    std::memset(&payload, 0, sizeof(struct graph_payload_t));
+    if (i == m_graphList.end()) {
+        m_graphList.emplace(dataset, m_graphList.size());
+    }
+
+    OutboundDataPacket packet;
+    packet.ID = k_outDataPacket | i->second;
 
     // Change to network byte order
-    payload.type = 'd';
-
     // Swap bytes in x, and copy into the payload struct
+    uint64_t xtmp;
     std::memcpy(&xtmp, &m_currentTime, sizeof(xtmp));
     xtmp = be64toh(xtmp);
-    std::memcpy(&payload.x, &xtmp, sizeof(xtmp));
+    std::memcpy(&packet.x, &xtmp, sizeof(xtmp));
 
     // Swap bytes in y, and copy into the payload struct
+    uint32_t ytmp;
     std::memcpy(&ytmp, &value, sizeof(ytmp));
     ytmp = htonl(ytmp);
-    std::memcpy(&payload.y, &ytmp, sizeof(ytmp));
-
-    std::strncpy(payload.dataset, dataset.c_str(), 15);
+    std::memcpy(&packet.y, &ytmp, sizeof(ytmp));
 
     m_mutex.lock();
-
-    // If the dataset name isn't in the list already, add it
-    AddGraph(dataset);
 
     // Send the point to connected clients
     for (auto& conn : m_connList) {
         for (const auto& dataset_str : conn->datasets) {
-            if (dataset_str == dataset) {
+            if (dataset_str == i->second) {
                 // Send the value off
-                conn->queueWrite(payload);
+                conn->queueWrite(packet);
             }
         }
     }
 
     m_mutex.unlock();
 
-    return 0;
+    return true;
 }
 
 bool GraphHost::HasIntervalPassed() {
@@ -133,6 +131,16 @@ bool GraphHost::HasIntervalPassed() {
 
 void GraphHost::ResetInterval() {
     m_lastTime = m_currentTime;
+}
+
+uint8_t GraphHost::packetID(uint8_t id) {
+    // Masks two high-order bits
+    return id & 0xC0;
+}
+
+uint8_t GraphHost::graphID(uint8_t id) {
+    // Masks six low-order bits
+    return id & 0x2F;
 }
 
 void GraphHost::socket_threadmain() {
@@ -194,7 +202,7 @@ void GraphHost::socket_threadmain() {
         while (conn != m_connList.end()) {
             if (FD_ISSET((*conn)->fd, &readfds)) {
                 // Handle reading
-                if ((*conn)->readPackets() == -1) {
+                if (ReadPackets(conn->get()) == -1) {
                     conn = m_connList.erase(conn);
                     continue;
                 }
@@ -349,18 +357,47 @@ int GraphHost::socket_accept(int listenfd) {
     return new_fd;
 }
 
-// If the dataset name isn't in the list already, add it
-int GraphHost::AddGraph(const std::string& dataset) {
-    // Add the graph name to the list of available graphs
-    for (const auto& elem : SocketConnection::graphNames) {
-        // Graph is already in list
-        if (elem == dataset) {
-            return 1;
-        }
+int GraphHost::ReadPackets(SocketConnection* conn) {
+    int error;
+    uint8_t id;
+
+    error = conn->recvData(reinterpret_cast<char*>(&id), 1);
+    if (error == 0 || (error == -1 && errno != EAGAIN)) {
+        return -1;
     }
 
-    // Graph wasn't in the list, so add it
-    SocketConnection::graphNames.push_back(dataset);
+    switch (packetID(id)) {
+    case k_inConnectPacket:
+        // Start sending data for the graph specified by graphName
+        if (std::find(conn->datasets.begin(), conn->datasets.end(),
+                      graphID(id)) == conn->datasets.end()) {
+            conn->datasets.push_back(graphID(id));
+        }
+        break;
+    case k_inDisconnectPacket:
+        // Stop sending data for the graph specified by graphName
+        std::remove(conn->datasets.begin(), conn->datasets.end(), graphID(id));
+        break;
+    case k_inListPacket:
+        for (auto& graph : m_graphList) {
+            char buf[1 + 1 + graph.first.length() + 1];
+
+            buf[0] = k_outListPacket | graph.second;
+            buf[1] = graph.first.length();
+            std::strcpy(&buf[2], graph.first.c_str());
+
+            // Is this the last element in the list?
+            if (static_cast<size_t>(graph.second + 1) == m_graphList.size()) {
+                buf[2 + buf[1]] = 1;
+            }
+            else {
+                buf[2 + buf[1]] = 0;
+            }
+
+            // Queue the datagram for writing
+            conn->queueWrite(buf, sizeof(buf));
+        }
+    }
 
     return 0;
 }
