@@ -8,37 +8,65 @@ Communication Protocol
 
 Clients should connect to the TCP port specified in the constructor. Various requests can then be sent to the server. These requests may trigger the server to respond with zero or more responses. All communication with the server is asynchronous. A request may be sent at any time, even before a response has been received regarding a previous request. Therefore, the order in which responses are sent is unspecified.
 
-All requests consist of sixteen byte ASCII strings. The first byte describes the type of request. The remaining fifteen bytes describe the dataset name associated with the request (if appropriate).
+Packets are classified as either client or host packets, representing by whom they are received. The first byte is split into two fields of two and six bits respectively. The first field contains an ID for the type of packet sent, and the second contains the ID of the graph whose information was sent, if applicable. The packet payload descriptions are written in terms of C standard integer typedefs and C bitfields.
 
-All responses consist of 28 bytes arranged in various configurations. The first byte describes the type of response.
+### Host Packets ###
 
-### List Available Datasets ('l') ###
+#### Start Sending Data ####
 
-This request triggers the server to respond with a list of datasets from which data can be requested.
+This request notifies the server that it may begin sending data points associated with the specified data set.
 
-The 'l' character is sent to the server, followed by fifteen bytes of padding. One response is sent for each available dataset.
+* uint8_t packetID : 2
+  * Contains '0b00'
+* uint8_t graphID : 6
+  * Contains ID of graph
 
-The body of each response contains the following fields:
-* The ASCII character 'l', the type of response.
-* A fifteen byte string whose contents represent the name of a dataset in the list.
-* A nonzero value of this one byte field indicates the datagram is the last in the sequence.
-* Eleven bytes of padding.
+#### Stop Sending Data ####
 
-### Begin Sending Data ('c') ###
+This request notifies the server to stop sending data from the specified data set.
 
-This request notifies the server that it may begin sending data points associated with the specified dataset.
+* uint8_t packetID : 2
+  * Contains '0b01'
+* uint8_t graphID : 6
+  * Contains ID of graph
 
-The 'c' character is sent to the server, followed by a fifteen byte string describing the dataset from which data is being requested. The server will then respond with a data point each time the *GraphHost::graphData()* function is called with the specified dataset.
+#### List Available Data Sets ####
 
-The body of each response contains the following fields:
-* The ASCII character 'd', the type of response.
-* The fifteen byte ASCII string describing the dataset to which the data point belongs.
-* A 64-bit, unsigned integer representing the X component of the data points position as specified in the call to GraphHost::graphData().
-* A 32-bit, IEEE floating point number representing the Y component of the data points position as specified in the call to GraphHost::graphData().
+This request triggers the host to respond with a list of names of availabe data sets from which data can be requested.
 
-### Stop Sending Data ('d') ###
+* uint8_t packetID : 2
+  * Contains '0b10'
+* uint8_t graphID : 6
+  * Unused
+  * Should be set to 0, but not required
 
-This request notifies the server to stop sending data from the specified dataset.
+### Client Packets ###
 
-The 'd' character is sent to the server, followed by a fifteen byte string describing the dataset from which to stop sending data.
+#### Data ####
 
+This packet contains a point of data from the given data set.
+
+* uint8_t packetID : 2
+  * Contains '0b00'
+* uint8_t graphID : 6
+  * Contains ID of graph
+* uint64_t x
+  * X component of data point
+* float y
+  * Y component of data point
+  * It is assumed to be a 32-bit IEEE 754 floating point number
+
+#### List ####
+
+One response of this packet type is sent for each available data set after sending a request for the list of available data sets. This packet contains the name of the data set on the host.
+
+* uint8_t packetID : 2
+  * Contains '0b01'
+* uint8_t graphID : 6
+  * Contains ID of graph
+* uint8_t length
+  * Contains length of name. Max length is 255.
+* uint8_t name[]
+  * Contains name which is 'length' bytes long (not NULL terminated)
+* uint8_t eof
+  * 1 indicates the packet is the last in the sequence; 0 otherwise
