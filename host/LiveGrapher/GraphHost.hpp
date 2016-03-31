@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <atomic>
 #include <chrono>
+#include <map>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -29,45 +30,93 @@
  *
  * Example:
  *     GraphHost pidGraph(3513);
- *     pidGraph.setSendInterval(5ms);
+ *     pidGraph.SetSendInterval(5ms);
  *
- *     if (pidGraph.hasIntervalPassed()) {
- *         pidGraph.graphData(frisbeeShooter.getRPM(), "PID0");
- *         pidGraph.graphData(frisbeeShooter.getTargetRPM(), "PID1");
+ *     if (pidGraph.HasIntervalPassed()) {
+ *         pidGraph.GraphData(frisbeeShooter.getRPM(), "PID0");
+ *         pidGraph.GraphData(frisbeeShooter.getTargetRPM(), "PID1");
  *
- *         pidGraph.resetInterval();
+ *         pidGraph.ResetInterval();
  *     }
  */
 
 using namespace std::chrono;
 using namespace std::chrono_literals;
 
-struct[[gnu::packed]] graph_payload_t{
-    char type; // Set to 'd' to identify this as a graph payload packet
-    char dataset[15];
+/* '0b00' type outbound packet
+ *   > uint8_t packetID : 2
+ *    '0b00': Asks host to start sending data set of given name
+ *   > uint8_t graphID : 6
+ *     Contains ID of graph
+ *
+ * '0b01' type outbound packet
+ *   > uint8_t packetID : 2
+ *     '0b01': Asks host to stop sending data set of given name
+ *   > uint8_t graphID : 6
+ *     Contains ID of graph
+ *
+ * '0b10' type outbound packet
+ *   > uint8_t packetID : 2
+ *     '0b10': Asks host to send list of names of available data sets
+ *   > uint8_t graphID : 6
+ *     Not used. Should be set to 0
+ */
+struct[[gnu::packed]] InboundPacket{
+    uint8_t ID;
+};
+
+constexpr uint8_t k_inConnectPacket = 0b00 << 6;
+constexpr uint8_t k_inDisconnectPacket = 0b01 << 6;
+constexpr uint8_t k_inListPacket = 0b10 << 6;
+
+/* '0b00' type inbound packet
+ *   > uint8_t packetID : 2
+ *     '0b00': Contains point of data from given data set
+ *   > uint8_t graphID : 6
+ *     Contains ID of graph
+ *   > uint64_t x
+ *     X coordinate of graph point
+ *   > float y
+ *     Y coordinate of graph point
+ *
+ * '0b01' type inbound packet
+ *   > uint8_t packetID : 2
+ *     '0b01': Contains name of data set on host
+ *   > uint8_t graphID : 6
+ *     Contains ID of graph
+ *   > uint8_t length
+ *     Contains length of name. Max length is 255.
+ *   > uint8_t name[]
+ *     Contains name which is 'length' bytes long (not NULL terminated)
+ *   > uint8_t eof
+ *     1 if this graph name is the last; 0 otherwise
+ */
+struct[[gnu::packed]] OutboundDataPacket{
+    uint8_t ID;
     uint64_t x;
     float y;
 };
 
-struct[[gnu::packed]] graph_list_t{
-    char type;
-    char dataset[15];
-    char end;
-    char pad[11];
+struct OutboundListPacket {
+    uint8_t ID;
+    uint8_t length;
+    std::string name;
+    char eof;
 };
+
+constexpr uint8_t k_outDataPacket = 0b00 << 6;
+constexpr uint8_t k_outListPacket = 0b01 << 6;
 
 class GraphHost {
 public:
     explicit GraphHost(int port);
     ~GraphHost();
 
-    /* * Send data (y value) for a given dataset to remote client
-     * * The current time is sent as the x value
-     * * Return values:
-     *       -1 = host not running
-     *       0 = data sent successfully
+    /* Send data (y value) for a given dataset to remote client. The current time
+     * is sent as the x value. Returns true if data was sent successfully and
+     * false upon failure or host isn't running.
      */
-    int GraphData(float value, std::string dataset);
+    bool GraphData(float value, std::string dataset);
 
     /* Sets time interval after which data is sent to graph (milliseconds per
      * sample)
@@ -102,14 +151,18 @@ private:
     int m_ipcfd_r;
     int m_ipcfd_w;
     int m_port;
-    std::vector<std::string> m_graphList;
+    std::map<std::string, uint8_t> m_graphList;
     std::vector<std::unique_ptr<SocketConnection>> m_connList;
+
+    static inline uint8_t packetID(uint8_t id);
+    static inline uint8_t graphID(uint8_t id);
 
     void socket_threadmain();
 
     static int socket_listen(int port, uint32_t s_addr);
     static int socket_accept(int listenfd);
-    int AddGraph(const std::string& dataset);
+
+    int ReadPackets(SocketConnection* conn);
 };
 
 #include "GraphHost.inl"

@@ -17,8 +17,6 @@
 
 #include "GraphHost.hpp"
 
-std::vector<std::string> SocketConnection::graphNames;
-
 SocketConnection::SocketConnection(int nfd, int ipcWriteSock) {
     fd = nfd;
     m_ipcfd_w = ipcWriteSock;
@@ -28,79 +26,19 @@ SocketConnection::~SocketConnection() {
     close(fd);
 }
 
-// Receives 16 byte buffers
-int SocketConnection::readPackets() {
-    if (m_readdone) {
-        m_readbufoffset = 0;
-        m_readbuf = std::string(16, 0);
-        m_readdone = false;
-    }
+int SocketConnection::recvData(char* buf, size_t length) {
+    int error = recv(fd, buf, length, 0);
 
-    int error = recv(fd, &m_readbuf[0], m_readbuf.length() -
-                     m_readbufoffset, 0);
     if (error == 0 || (error == -1 && errno != EAGAIN)) {
         // recv(3) failed, so return failure so socket is closed
         return -1;
     }
-    m_readbufoffset += error;
 
-    if (m_readbufoffset == m_readbuf.length()) {
-        // Add null terminator
-        m_readbuf[15] = 0;
-        processPacket(m_readbuf);
-        m_readbufoffset = 0;
-        m_readdone = true;
-    }
-
-    return 0;
-}
-
-void SocketConnection::processPacket(std::string& buf) {
-    const char* graphName = buf.c_str() + 1;
-
-    switch (buf[0]) {
-    case 'c':
-        // Start sending data for the graph specified by graphName
-        if (std::find(datasets.begin(), datasets.end(),
-                      graphName) == datasets.end()) {
-            datasets.push_back(graphName);
-        }
-        break;
-    case 'd':
-        // Stop sending data for the graph specified by graphName
-        std::remove_if(datasets.begin(), datasets.end(),
-                       [&] (const auto& set) { return set == graphName; });
-        break;
-    case 'l':
-        sendList();
-    }
+    return error;
 }
 
 // Send to the client a list of available graphs
 void SocketConnection::sendList() {
-    struct graph_list_t replydg;
-
-    // Set up the response body, and queue it for sending
-    std::memset(&replydg, 0, sizeof(struct graph_list_t));
-
-    // Set the type of the datagram
-    replydg.type = 'l';
-
-    for (unsigned int i = 0; i < graphNames.size(); i++) {
-        // Is this the last element in the list?
-        if (i + 1 == graphNames.size()) {
-            replydg.end = 1;
-        }
-        else {
-            replydg.end = 0;
-        }
-
-        // Copy in the string
-        std::strcpy(replydg.dataset, graphNames[i].c_str());
-
-        // Queue the datagram for writing
-        queueWrite(replydg);
-    }
 }
 
 // Write queued data to a socket when the socket becomes ready
@@ -135,4 +73,12 @@ void SocketConnection::writePackets() {
 
     // Stop selecting on write
     selectflags &= ~SocketConnection::Write;
+}
+
+void SocketConnection::queueWrite(const char* buf, size_t length) {
+    m_writequeue.emplace(buf, length);
+
+    // Select on write
+    selectflags |= SocketConnection::Write;
+    write(m_ipcfd_w, "r", 1);
 }
