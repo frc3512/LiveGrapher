@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <atomic>
 #include <chrono>
+#include <map>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -29,45 +30,31 @@
  *
  * Example:
  *     GraphHost pidGraph(3513);
- *     pidGraph.setSendInterval(5ms);
+ *     pidGraph.SetSendInterval(5ms);
  *
- *     if (pidGraph.hasIntervalPassed()) {
- *         pidGraph.graphData(frisbeeShooter.getRPM(), "PID0");
- *         pidGraph.graphData(frisbeeShooter.getTargetRPM(), "PID1");
+ *     if (pidGraph.HasIntervalPassed()) {
+ *         pidGraph.GraphData(frisbeeShooter.getRPM(), "PID0");
+ *         pidGraph.GraphData(frisbeeShooter.getTargetRPM(), "PID1");
  *
- *         pidGraph.resetInterval();
+ *         pidGraph.ResetInterval();
  *     }
  */
 
+#include "../../common/Protocol.hpp"
+
 using namespace std::chrono;
 using namespace std::chrono_literals;
-
-struct[[gnu::packed]] graph_payload_t{
-    char type; // Set to 'd' to identify this as a graph payload packet
-    char dataset[15];
-    uint64_t x;
-    float y;
-};
-
-struct[[gnu::packed]] graph_list_t{
-    char type;
-    char dataset[15];
-    char end;
-    char pad[11];
-};
 
 class GraphHost {
 public:
     explicit GraphHost(int port);
     ~GraphHost();
 
-    /* * Send data (y value) for a given dataset to remote client
-     * * The current time is sent as the x value
-     * * Return values:
-     *       -1 = host not running
-     *       0 = data sent successfully
+    /* Send data (y value) for a given dataset to remote client. The current time
+     * is sent as the x value. Returns true if data was sent successfully and
+     * false upon failure or host isn't running.
      */
-    int GraphData(float value, std::string dataset);
+    bool GraphData(float value, std::string dataset);
 
     /* Sets time interval after which data is sent to graph (milliseconds per
      * sample)
@@ -102,14 +89,18 @@ private:
     int m_ipcfd_r;
     int m_ipcfd_w;
     int m_port;
-    std::vector<std::string> m_graphList;
+    std::map<std::string, uint8_t> m_graphList;
     std::vector<std::unique_ptr<SocketConnection>> m_connList;
+
+    static inline uint8_t packetID(uint8_t id);
+    static inline uint8_t graphID(uint8_t id);
 
     void socket_threadmain();
 
     static int socket_listen(int port, uint32_t s_addr);
     static int socket_accept(int listenfd);
-    int AddGraph(const std::string& dataset);
+
+    int ReadPackets(SocketConnection* conn);
 };
 
 #include "GraphHost.inl"

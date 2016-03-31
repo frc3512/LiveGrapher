@@ -7,7 +7,8 @@
 #include <QCheckBox>
 #include "Graph.hpp"
 
-SelectDialog::SelectDialog(std::vector<std::string>& graphNames,
+SelectDialog::SelectDialog(std::vector<std::pair<uint8_t,
+                                                 std::string>>& graphNames,
                            Graph* graphData,
                            QWidget* parent) :
     QDialog(parent) {
@@ -24,9 +25,9 @@ SelectDialog::SelectDialog(std::vector<std::string>& graphNames,
 
     QVBoxLayout* checkList = new QVBoxLayout(container);
     QCheckBox* checkBox;
-    for (unsigned int i = 0; i < graphNames.size(); i++) {
-        checkBox = new QCheckBox(QString::fromUtf8(graphNames[i].c_str(),
-                                                   graphNames[i].size()));
+    for (size_t i = 0; i < graphNames.size(); i++) {
+        checkBox = new QCheckBox(QString::fromUtf8(graphNames[i].second.c_str(),
+                                                   graphNames[i].second.size()));
         connect(checkBox, SIGNAL(clicked()),
                 m_signalMapper, SLOT(map()));
         m_signalMapper->setMapping(checkBox, i);
