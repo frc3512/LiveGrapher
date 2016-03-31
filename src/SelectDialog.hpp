@@ -1,6 +1,8 @@
 #ifndef SELECT_DIALOG_HPP
 #define SELECT_DIALOG_HPP
 
+#include <utility>
+#include <vector>
 #include <QDialog>
 
 class QPushButton;
@@ -12,7 +14,8 @@ class SelectDialog : public QDialog {
     Q_OBJECT
 
 public:
-    SelectDialog(std::vector<std::string>& graphNames, Graph* graphData,
+    SelectDialog(std::vector<std::pair<uint8_t, std::string>>& graphNames,
+                 Graph* graphData,
                  QWidget* parent = nullptr);
 
 private slots:
