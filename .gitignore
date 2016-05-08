@@ -12,4 +12,5 @@ Makefile
 moc_*
 ui_*
 qrc_*
+Makefile*
 *.pro.user
