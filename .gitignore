@@ -6,8 +6,6 @@ LiveGrapher
 !LiveGrapher/
 *.swp
 
-Makefile
-
 # Qt-generated files
 moc_*
 ui_*
