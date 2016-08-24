@@ -1,8 +1,5 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
-
 #ifndef SOCKET_CONNECTION_HPP
 #define SOCKET_CONNECTION_HPP
 
