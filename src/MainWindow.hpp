@@ -1,9 +1,11 @@
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
+
 #ifndef MAIN_WINDOW_HPP
 #define MAIN_WINDOW_HPP
 
 #include <chrono>
-#include <mutex>
 #include <memory>
+#include <mutex>
 
 #include <QMainWindow>
 
@@ -40,4 +42,4 @@ private:
     friend class Graph;
 };
 
-#endif // MAIN_WINDOW_HPP
+#endif  // MAIN_WINDOW_HPP

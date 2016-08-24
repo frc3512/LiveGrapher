@@ -1,12 +1,7 @@
-// =============================================================================
-// Description: Wrapper around graph client socket descriptors
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
 #include "SocketConnection.hpp"
 
-#include <cstring>
-#include <algorithm>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -15,6 +10,9 @@
 #include <sockLib.h>
 #endif
 
+#include <algorithm>
+#include <cstring>
+
 #include "GraphHost.hpp"
 
 SocketConnection::SocketConnection(int nfd, int ipcWriteSock) {
@@ -22,9 +20,7 @@ SocketConnection::SocketConnection(int nfd, int ipcWriteSock) {
     m_ipcfd_w = ipcWriteSock;
 }
 
-SocketConnection::~SocketConnection() {
-    close(fd);
-}
+SocketConnection::~SocketConnection() { close(fd); }
 
 int SocketConnection::recvData(char* buf, size_t length) {
     int error = recv(fd, buf, length, 0);
@@ -52,16 +48,15 @@ void SocketConnection::writePackets() {
         }
 
         // These descriptors are ready for writing
-        m_writebufoffset += send(fd, &m_writebuf[0],
-                                 m_writebuf.length() - m_writebufoffset, 0);
+        m_writebufoffset +=
+            send(fd, &m_writebuf[0], m_writebuf.length() - m_writebufoffset, 0);
 
         // Have we finished writing the buffer?
         if (m_writebufoffset == m_writebuf.length()) {
             // Reset the write buffer
             m_writebufoffset = 0;
             m_writedone = true;
-        }
-        else {
+        } else {
             // We haven't finished writing, keep selecting
             return;
         }

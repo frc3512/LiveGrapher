@@ -1,17 +1,18 @@
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
+
 #include "SelectDialog.hpp"
 
+#include <QCheckBox>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSignalMapper>
 #include <QVBoxLayout>
-#include <QCheckBox>
 #include "Graph.hpp"
 
-SelectDialog::SelectDialog(std::vector<std::pair<uint8_t,
-                                                 std::string>>& graphNames,
-                           Graph* graphData,
-                           QWidget* parent) :
-    QDialog(parent) {
+SelectDialog::SelectDialog(
+    std::vector<std::pair<uint8_t, std::string>>& graphNames, Graph* graphData,
+    QWidget* parent)
+    : QDialog(parent) {
     m_okButton = new QPushButton(tr("&Ok"));
     connect(m_okButton, SIGNAL(released()), this, SLOT(close()));
 
@@ -26,16 +27,14 @@ SelectDialog::SelectDialog(std::vector<std::pair<uint8_t,
     QVBoxLayout* checkList = new QVBoxLayout(container);
     QCheckBox* checkBox;
     for (size_t i = 0; i < graphNames.size(); i++) {
-        checkBox = new QCheckBox(QString::fromUtf8(graphNames[i].second.c_str(),
-                                                   graphNames[i].second.size()));
-        connect(checkBox, SIGNAL(clicked()),
-                m_signalMapper, SLOT(map()));
+        checkBox = new QCheckBox(QString::fromUtf8(
+            graphNames[i].second.c_str(), graphNames[i].second.size()));
+        connect(checkBox, SIGNAL(clicked()), m_signalMapper, SLOT(map()));
         m_signalMapper->setMapping(checkBox, i);
         checkList->addWidget(checkBox);
     }
 
-    connect(m_signalMapper, SIGNAL(mapped(int)),
-            this, SLOT(selectGraph(int)));
+    connect(m_signalMapper, SIGNAL(mapped(int)), this, SLOT(selectGraph(int)));
 
     QHBoxLayout* bottomLayout = new QHBoxLayout;
     bottomLayout->addStretch();
@@ -49,6 +48,4 @@ SelectDialog::SelectDialog(std::vector<std::pair<uint8_t,
     setWindowTitle(tr("Select Graphs"));
 }
 
-void SelectDialog::selectGraph(int val) {
-    m_graph->m_curSelect ^= (1 << val);
-}
+void SelectDialog::selectGraph(int val) { m_graph->m_curSelect ^= (1 << val); }

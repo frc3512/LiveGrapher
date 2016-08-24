@@ -1,10 +1,13 @@
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
+
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
-#include <cstdint>
-#include <string>
+#include <stdint.h>
+
 #include <memory>
 #include <mutex>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -82,7 +85,7 @@ private:
     std::unique_ptr<QTcpSocket> m_dataSocket;
 
     QHostAddress m_remoteIP;
-    unsigned short m_dataPort;
+    uint16_t m_dataPort;
 
     uint64_t m_startTime = 0;
 
@@ -111,4 +114,4 @@ private:
     friend class SelectDialog;
 };
 
-#endif // GRAPH_HPP
+#endif  // GRAPH_HPP

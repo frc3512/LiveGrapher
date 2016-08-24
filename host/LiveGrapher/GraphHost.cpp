@@ -1,12 +1,9 @@
-// =============================================================================
-// Description: The host for the LiveGrapher real-time graphing application
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
 #include "GraphHost.hpp"
 
-#include <cstring>
 #include <algorithm>
+#include <cstring>
 
 #ifdef __VXWORKS__
 
@@ -29,9 +26,13 @@
 
 #endif
 
+using namespace std::chrono;
+using namespace std::chrono_literals;
+
 GraphHost::GraphHost(int port) {
-    m_currentTime = duration_cast<milliseconds>(
-        system_clock::now().time_since_epoch()).count();
+    m_currentTime =
+        duration_cast<milliseconds>(system_clock::now().time_since_epoch())
+            .count();
 
     // Store the port to listen on
     m_port = port;
@@ -80,8 +81,9 @@ bool GraphHost::GraphData(float value, std::string dataset) {
     static_assert(sizeof(float) == sizeof(uint32_t),
                   "float isn't 32 bits long");
 
-    m_currentTime = duration_cast<milliseconds>(
-        system_clock::now().time_since_epoch()).count();
+    m_currentTime =
+        duration_cast<milliseconds>(system_clock::now().time_since_epoch())
+            .count();
 
     auto i = m_graphList.find(dataset);
 
@@ -123,15 +125,14 @@ bool GraphHost::GraphData(float value, std::string dataset) {
 }
 
 bool GraphHost::HasIntervalPassed() {
-    m_currentTime = duration_cast<milliseconds>(
-        system_clock::now().time_since_epoch()).count();
+    m_currentTime =
+        duration_cast<milliseconds>(system_clock::now().time_since_epoch())
+            .count();
 
     return m_currentTime - m_lastTime > m_sendInterval;
 }
 
-void GraphHost::ResetInterval() {
-    m_lastTime = m_currentTime;
-}
+void GraphHost::ResetInterval() { m_lastTime = m_currentTime; }
 
 uint8_t GraphHost::packetID(uint8_t id) {
     // Masks two high-order bits
@@ -234,15 +235,15 @@ void GraphHost::socket_threadmain() {
 
                 m_mutex.lock();
                 // Add it to the list, this makes it a bit non-thread-safe
-                m_connList.emplace_back(std::make_unique<SocketConnection>(fd,
-                                                                           m_ipcfd_w));
+                m_connList.emplace_back(
+                    std::make_unique<SocketConnection>(fd, m_ipcfd_w));
                 m_mutex.unlock();
             }
         }
 
         // Handle IPC commands
         if (FD_ISSET(m_ipcfd_r, &readfds)) {
-            read(m_ipcfd_r, (char*) &ipccmd, 1);
+            read(m_ipcfd_r, reinterpret_cast<char*>(&ipccmd), 1);
         }
     }
 
@@ -257,24 +258,24 @@ void GraphHost::socket_threadmain() {
  * to the listening socket.
  */
 int GraphHost::socket_listen(int port, uint32_t s_addr) {
-    struct sockaddr_in serv_addr;
+    sockaddr_in serv_addr;
     int sd = -1;
 
     try {
         // Create a TCP socket
         sd = socket(AF_INET, SOCK_STREAM, 0);
         if (sd == -1) {
-            throw -1;
+            throw - 1;
         }
 
-        // Allow rebinding to the socket later if the connection is interrupted
+// Allow rebinding to the socket later if the connection is interrupted
 #ifndef __VXWORKS__
         int optval = 1;
         setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 #endif
 
         // Zero out the serv_addr struct
-        std::memset(&serv_addr, 0, sizeof(struct sockaddr_in));
+        std::memset(&serv_addr, 0, sizeof(sockaddr_in));
 
         // Set up the listener sockaddr_in struct
         serv_addr.sin_family = AF_INET;
@@ -282,17 +283,16 @@ int GraphHost::socket_listen(int port, uint32_t s_addr) {
         serv_addr.sin_port = htons(port);
 
         // Bind the socket to the listener sockaddr_in
-        if (bind(sd, reinterpret_cast<struct sockaddr*>(&serv_addr),
-                 sizeof(struct sockaddr_in)) != 0) {
-            throw -1;
+        if (bind(sd, reinterpret_cast<sockaddr*>(&serv_addr),
+                 sizeof(sockaddr_in)) != 0) {
+            throw - 1;
         }
 
         // Listen on the socket for incoming connections
         if (listen(sd, 5) != 0) {
-            throw -1;
+            throw - 1;
         }
-    }
-    catch (int e) {
+    } catch (int e) {
         perror("");
         if (sd != -1) {
             close(sd);
@@ -312,7 +312,7 @@ int GraphHost::socket_accept(int listenfd) {
 #else
     unsigned int clilen;
 #endif
-    struct sockaddr_in cli_addr;
+    sockaddr_in cli_addr;
 
     clilen = sizeof(cli_addr);
 
@@ -320,33 +320,32 @@ int GraphHost::socket_accept(int listenfd) {
 
     try {
         // Accept a new connection
-        new_fd = accept(listenfd,
-                        reinterpret_cast<struct sockaddr*>(&cli_addr), &clilen);
+        new_fd =
+            accept(listenfd, reinterpret_cast<sockaddr*>(&cli_addr), &clilen);
 
         // Make sure that the file descriptor is valid
         if (new_fd == -1) {
-            throw -1;
+            throw - 1;
         }
 
 #ifdef __VXWORKS__
         // Set the socket non-blocking
         int on = 1;
-        if (ioctl(new_fd, (int) FIONBIO, on) == -1) {
-            throw -1;
+        if (ioctl(new_fd, static_cast<int>(FIONBIO), on) == -1) {
+            throw - 1;
         }
 #else
         // Set the socket non-blocking
         int flags = fcntl(new_fd, F_GETFL, 0);
         if (flags == -1) {
-            throw -1;
+            throw - 1;
         }
 
         if (fcntl(new_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-            throw -1;
+            throw - 1;
         }
 #endif
-    }
-    catch (int e) {
+    } catch (int e) {
         perror("");
         if (new_fd != -1) {
             close(new_fd);
@@ -367,38 +366,42 @@ int GraphHost::ReadPackets(SocketConnection* conn) {
     }
 
     switch (packetID(id)) {
-    case k_hostConnectPacket:
-        // Start sending data for the graph specified by the ID
-        if (std::find(conn->dataSets.begin(), conn->dataSets.end(),
-                      graphID(id)) == conn->dataSets.end()) {
-            conn->dataSets.push_back(graphID(id));
-        }
-        break;
-    case k_hostDisconnectPacket:
-        // Stop sending data for the graph specified by the ID
-        conn->dataSets.erase(std::remove(conn->dataSets.begin(),
-                                         conn->dataSets.end(), graphID(id)),
-                             conn->dataSets.end());
-        break;
-    case k_hostListPacket:
-        for (auto& graph : m_graphList) {
-            char buf[1 + 1 + graph.first.length() + 1];
-
-            buf[0] = k_clientListPacket | graph.second;
-            buf[1] = graph.first.length();
-            std::strcpy(&buf[2], graph.first.c_str());
-
-            // Is this the last element in the list?
-            if (static_cast<size_t>(graph.second + 1) == m_graphList.size()) {
-                buf[2 + buf[1]] = 1;
+        case k_hostConnectPacket:
+            // Start sending data for the graph specified by the ID
+            if (std::find(conn->dataSets.begin(), conn->dataSets.end(),
+                          graphID(id)) == conn->dataSets.end()) {
+                conn->dataSets.push_back(graphID(id));
             }
-            else {
-                buf[2 + buf[1]] = 0;
-            }
+            break;
+        case k_hostDisconnectPacket:
+            // Stop sending data for the graph specified by the ID
+            conn->dataSets.erase(std::remove(conn->dataSets.begin(),
+                                             conn->dataSets.end(), graphID(id)),
+                                 conn->dataSets.end());
+            break;
+        case k_hostListPacket:
+            for (auto& graph : m_graphList) {
+                if (m_buf.length() < 1 + 1 + graph.first.length() + 1) {
+                    m_buf.resize(1 + 1 + graph.first.length() + 1;
+                }
 
-            // Queue the datagram for writing
-            conn->queueWrite(buf, 1 + 1 + graph.first.length() + 1);
-        }
+                m_buf[0] = k_clientListPacket | graph.second;
+                m_buf[1] = graph.first.length();
+                std::strncpy(&m_buf[2], graph.first.c_str(),
+                             graph.first.length());
+
+                // Is this the last element in the list?
+                if (static_cast<size_t>(graph.second + 1) ==
+                    m_graphList.size()) {
+                    m_buf[2 + m_buf[1]] = 1;
+                } else {
+                    m_buf[2 + m_buf[1]] = 0;
+                }
+
+                // Queue the datagram for writing
+                conn->queueWrite(m_buf.c_str(),
+                                 1 + 1 + graph.first.length() + 1);
+            }
     }
 
     return 0;

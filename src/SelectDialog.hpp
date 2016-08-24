@@ -1,9 +1,11 @@
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
+
 #ifndef SELECT_DIALOG_HPP
 #define SELECT_DIALOG_HPP
 
+#include <QDialog>
 #include <utility>
 #include <vector>
-#include <QDialog>
 
 class QPushButton;
 class QScrollArea;
@@ -15,8 +17,7 @@ class SelectDialog : public QDialog {
 
 public:
     SelectDialog(std::vector<std::pair<uint8_t, std::string>>& graphNames,
-                 Graph* graphData,
-                 QWidget* parent = nullptr);
+                 Graph* graphData, QWidget* parent = nullptr);
 
 private slots:
     void selectGraph(int val);
@@ -28,4 +29,4 @@ private:
     QSignalMapper* m_signalMapper;
 };
 
-#endif // SELECT_DIALOG_HPP
+#endif  // SELECT_DIALOG_HPP

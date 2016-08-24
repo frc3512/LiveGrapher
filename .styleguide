@@ -1,0 +1,21 @@
+genFolderExclude {
+}
+
+genFileExclude {
+  \.ico$
+  \.o$
+  LiveGrapher$
+  LiveGrapher\.pro\.user$
+  Makefile
+  moc_
+  qcustomplot\.
+  qrc_
+  ui_
+}
+
+modifiableFolderExclude {
+  \.git
+}
+
+modifiableFileExclude {
+}

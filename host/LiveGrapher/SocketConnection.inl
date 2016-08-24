@@ -1,7 +1,4 @@
-// =============================================================================
-// Description: Wrapper around graph client socket descriptors
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
 #include <unistd.h>
 

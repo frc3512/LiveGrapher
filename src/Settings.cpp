@@ -1,16 +1,10 @@
-// =============================================================================
-// Description: Opens a given file and creates an STL map of its name-value
-//              pairs
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
 #include "Settings.hpp"
 #include <fstream>
 #include <iostream>
 
-Settings::Settings(std::string fileName) : m_fileName(fileName) {
-    update();
-}
+Settings::Settings(std::string fileName) : m_fileName(fileName) { update(); }
 
 void Settings::update() {
     std::string name;
@@ -45,8 +39,8 @@ std::string Settings::getString(const std::string& key) const {
 
     // If the element wasn't found
     if (index == m_values.end()) {
-        std::cout << "Settings: " << m_fileName << ": '" << key <<
-            "' not found\n";
+        std::cout << "Settings: " << m_fileName << ": '" << key
+                  << "' not found\n";
         return "NOT_FOUND";
     }
 
@@ -59,8 +53,8 @@ double Settings::getDouble(const std::string& key) const {
 
     // If the element wasn't found
     if (index == m_values.end()) {
-        std::cout << "Settings: " << m_fileName << ": '" << key <<
-            "' not found\n";
+        std::cout << "Settings: " << m_fileName << ": '" << key
+                  << "' not found\n";
         return 0.f;
     }
 
@@ -73,8 +67,8 @@ int Settings::getInt(const std::string& key) const {
 
     // If the element wasn't found
     if (index == m_values.end()) {
-        std::cout << "Settings: " << m_fileName << ": '" << key <<
-            "' not found\n";
+        std::cout << "Settings: " << m_fileName << ": '" << key
+                  << "' not found\n";
         return 0;
     }
 

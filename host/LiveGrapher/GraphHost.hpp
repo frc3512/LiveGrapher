@@ -1,12 +1,10 @@
-// =============================================================================
-// Description: The host for the LiveGrapher real-time graphing application
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
 #ifndef GRAPHHOST_HPP
 #define GRAPHHOST_HPP
 
-#include <cstdint>
+#include <stdint.h>
+
 #include <atomic>
 #include <chrono>
 #include <map>
@@ -17,7 +15,10 @@
 
 #include "SocketConnection.hpp"
 
-/* Usage:
+/**
+ * The host for the LiveGrapher real-time graphing application.
+ *
+ * Usage:
  *
  * The GraphHost interface is started upon object initialization.
  *
@@ -42,17 +43,14 @@
 
 #include "../../common/Protocol.hpp"
 
-using namespace std::chrono;
-using namespace std::chrono_literals;
-
 class GraphHost {
 public:
     explicit GraphHost(int port);
     ~GraphHost();
 
-    /* Send data (y value) for a given dataset to remote client. The current time
-     * is sent as the x value. Returns true if data was sent successfully and
-     * false upon failure or host isn't running.
+    /* Send data (y value) for a given dataset to remote client. The current
+     * time is sent as the x value. Returns true if data was sent successfully
+     * and false upon failure or host isn't running.
      */
     bool GraphData(float value, std::string dataset);
 
@@ -76,10 +74,12 @@ private:
     // Last time data was graphed
     uint64_t m_lastTime = 0;
 
-    // Time interval after which data is sent to graph (in milliseconds per sample)
+    /* Time interval after which data is sent to graph (in milliseconds per
+     * sample)
+     */
     uint32_t m_sendInterval = 5;
 
-    // Used as a temp variables in graphData(2)
+    // Used as a temp variable in graphData()
     uint64_t m_currentTime;
 
     // Mark the thread as not running, this will be set to true by the thread
@@ -91,6 +91,9 @@ private:
     int m_port;
     std::map<std::string, uint8_t> m_graphList;
     std::vector<std::unique_ptr<SocketConnection>> m_connList;
+
+    // Temporary buffer used in ReadPackets()
+    std::string m_buf;
 
     static inline uint8_t packetID(uint8_t id);
     static inline uint8_t graphID(uint8_t id);
@@ -105,4 +108,4 @@ private:
 
 #include "GraphHost.inl"
 
-#endif // GRAPHHOST_HPP
+#endif  // GRAPHHOST_HPP

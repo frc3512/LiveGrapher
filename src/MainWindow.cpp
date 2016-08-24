@@ -1,25 +1,22 @@
+// Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
+
 #include "MainWindow.hpp"
 #include <QMessageBox>
 
 using namespace std::chrono_literals;
 
-MainWindow::MainWindow(QWidget* parent) :
-    QMainWindow(parent),
-    m_graph(this),
-    m_settings("IPSettings.txt") {
+MainWindow::MainWindow(QWidget* parent)
+    : QMainWindow(parent), m_graph(this), m_settings("IPSettings.txt") {
     m_ui = std::make_unique<Ui::MainWindow>();
     m_ui->setupUi(this);
 
-    connect(m_ui->actionSave_As_CSV, SIGNAL(triggered()),
-            &m_graph, SLOT(saveAsCSV()));
-    connect(m_ui->actionAbout, SIGNAL(triggered()),
-            this, SLOT(about()));
-    connect(m_ui->connectButton, SIGNAL(released()),
-            this, SLOT(reconnect()));
-    connect(m_ui->clearDataButton, SIGNAL(released()),
-            this, SLOT(clearAllData()));
-    connect(m_ui->saveButton, SIGNAL(released()),
-            &m_graph, SLOT(saveAsCSV()));
+    connect(m_ui->actionSave_As_CSV, SIGNAL(triggered()), &m_graph,
+            SLOT(saveAsCSV()));
+    connect(m_ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
+    connect(m_ui->connectButton, SIGNAL(released()), this, SLOT(reconnect()));
+    connect(m_ui->clearDataButton, SIGNAL(released()), this,
+            SLOT(clearAllData()));
+    connect(m_ui->saveButton, SIGNAL(released()), &m_graph, SLOT(saveAsCSV()));
 
     QCustomPlot* customPlot = m_ui->plot;
 
@@ -42,8 +39,8 @@ MainWindow::MainWindow(QWidget* parent) :
     /* Bind signals and slots for communication between the graph TCP client
      * thread and the UI thread
      */
-    connect(&m_graph, SIGNAL(realtimeDataSignal(int, float, float)),
-            this, SLOT(realtimeDataSlot(int, float, float)));
+    connect(&m_graph, SIGNAL(realtimeDataSignal(int, float, float)), this,
+            SLOT(realtimeDataSlot(int, float, float)));
 
     m_xHistory = m_settings.getDouble("xHistory");
     m_lastTime = std::chrono::steady_clock::now();
@@ -65,13 +62,9 @@ void MainWindow::about() {
                           "All Rights Reserved"));
 }
 
-void MainWindow::reconnect() {
-    m_graph.reconnect();
-}
+void MainWindow::reconnect() { m_graph.reconnect(); }
 
-void MainWindow::clearAllData() {
-    m_graph.clearAllData();
-}
+void MainWindow::clearAllData() { m_graph.clearAllData(); }
 
 void MainWindow::realtimeDataSlot(int graphId, float x, float y) {
     QCustomPlot* plot = m_ui->plot;
@@ -89,8 +82,7 @@ void MainWindow::realtimeDataSlot(int graphId, float x, float y) {
             // Rescale value (vertical) axis to fit the current data
             if (i == 0) {
                 plot->graph(i)->rescaleValueAxis();
-            }
-            else {
+            } else {
                 plot->graph(i)->rescaleValueAxis(true);
             }
 
@@ -107,7 +99,8 @@ void MainWindow::realtimeDataSlot(int graphId, float x, float y) {
     static uint64_t lastTime = 0;
     static uint64_t currentTime;
     currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
+                      std::chrono::system_clock::now().time_since_epoch())
+                      .count();
 
     if (currentTime - lastTime > 1000 / 30) {
         plot->replot();
