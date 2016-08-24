@@ -382,7 +382,7 @@ int GraphHost::ReadPackets(SocketConnection* conn) {
         case k_hostListPacket:
             for (auto& graph : m_graphList) {
                 if (m_buf.length() < 1 + 1 + graph.first.length() + 1) {
-                    m_buf.resize(1 + 1 + graph.first.length() + 1;
+                    m_buf.resize(1 + 1 + graph.first.length() + 1);
                 }
 
                 m_buf[0] = k_clientListPacket | graph.second;
