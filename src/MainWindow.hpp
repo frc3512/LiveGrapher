@@ -1,7 +1,6 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
-#ifndef MAIN_WINDOW_HPP
-#define MAIN_WINDOW_HPP
+#pragma once
 
 #include <chrono>
 #include <memory>
@@ -41,5 +40,3 @@ private:
 
     friend class Graph;
 };
-
-#endif  // MAIN_WINDOW_HPP

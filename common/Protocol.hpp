@@ -1,7 +1,6 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
-#ifndef PROTOCOL_HPP
-#define PROTOCOL_HPP
+#pragma once
 
 #include <stdint.h>
 
@@ -34,5 +33,3 @@ struct ClientListPacket {
 
 constexpr uint8_t k_clientDataPacket = 0b00 << 6;
 constexpr uint8_t k_clientListPacket = 0b01 << 6;
-
-#endif  // PROTOCOL_HPP

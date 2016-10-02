@@ -1,7 +1,6 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
-#ifndef GRAPH_HPP
-#define GRAPH_HPP
+#pragma once
 
 #include <stdint.h>
 
@@ -113,5 +112,3 @@ private:
 
     friend class SelectDialog;
 };
-
-#endif  // GRAPH_HPP

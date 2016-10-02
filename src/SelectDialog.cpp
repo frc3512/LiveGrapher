@@ -7,6 +7,7 @@
 #include <QScrollArea>
 #include <QSignalMapper>
 #include <QVBoxLayout>
+
 #include "Graph.hpp"
 
 SelectDialog::SelectDialog(

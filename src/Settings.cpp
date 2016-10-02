@@ -1,6 +1,7 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
 #include "Settings.hpp"
+
 #include <fstream>
 #include <iostream>
 
@@ -59,7 +60,7 @@ double Settings::getDouble(const std::string& key) const {
     }
 
     // Else return the value for that element
-    return atof(index->second.c_str());
+    return std::atof(index->second.c_str());
 }
 
 int Settings::getInt(const std::string& key) const {
@@ -73,7 +74,7 @@ int Settings::getInt(const std::string& key) const {
     }
 
     // Else return the value for that element
-    return atoi(index->second.c_str());
+    return std::atoi(index->second.c_str());
 }
 
 void Settings::saveToFile(const std::string& fileName) {

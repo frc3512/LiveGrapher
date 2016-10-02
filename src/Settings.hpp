@@ -1,7 +1,6 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
-#ifndef SETTINGS_HPP
-#define SETTINGS_HPP
+#pragma once
 
 #include <map>
 #include <string>
@@ -47,5 +46,3 @@ private:
     std::string extractKey();
     std::string extractValue();
 };
-
-#endif  // SETTINGS_HPP

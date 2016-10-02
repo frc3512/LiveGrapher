@@ -1,5 +1,7 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
+#pragma once
+
 template <typename Rep, typename Period>
 void GraphHost::SetSendInterval(
     const std::chrono::duration<Rep, Period>& time) {

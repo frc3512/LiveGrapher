@@ -1,7 +1,6 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
-#ifndef SOCKET_CONNECTION_HPP
-#define SOCKET_CONNECTION_HPP
+#pragma once
 
 #include <stdint.h>
 
@@ -48,5 +47,3 @@ private:
 };
 
 #include "SocketConnection.inl"
-
-#endif  // SOCKET_CONNECTION_HPP

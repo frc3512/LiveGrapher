@@ -1,11 +1,12 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
-#ifndef SELECT_DIALOG_HPP
-#define SELECT_DIALOG_HPP
+#pragma once
 
-#include <QDialog>
+#include <string>
 #include <utility>
 #include <vector>
+
+#include <QDialog>
 
 class QPushButton;
 class QScrollArea;
@@ -28,5 +29,3 @@ private:
     Graph* m_graph;
     QSignalMapper* m_signalMapper;
 };
-
-#endif  // SELECT_DIALOG_HPP

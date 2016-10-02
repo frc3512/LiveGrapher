@@ -1,18 +1,19 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
+#include "Graph.hpp"
+
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
-#include "Graph.hpp"
+#include <QMessageBox>
+#include <QtEndian>
+
 #include "MainWindow.hpp"
 #include "SelectDialog.hpp"
 #include "ui_MainWindow.h"
-
-#include <QMessageBox>
-#include <QtEndian>
 
 QColor HSVtoRGB(float h, float s, float v) {
     float r;

@@ -1,13 +1,13 @@
 // Copyright (c) FRC Team 3512, Spartatroniks 2013-2016. All Rights Reserved.
 
-#ifndef GRAPHHOST_HPP
-#define GRAPHHOST_HPP
+#pragma once
 
 #include <stdint.h>
 
 #include <atomic>
 #include <chrono>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -107,5 +107,3 @@ private:
 };
 
 #include "GraphHost.inl"
-
-#endif  // GRAPHHOST_HPP
