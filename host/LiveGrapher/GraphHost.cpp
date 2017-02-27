@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <memory>
 
 #ifdef __VXWORKS__
 

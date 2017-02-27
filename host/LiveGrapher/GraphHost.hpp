@@ -33,11 +33,13 @@
  *     GraphHost pidGraph(3513);
  *     pidGraph.SetSendInterval(5ms);
  *
- *     if (pidGraph.HasIntervalPassed()) {
- *         pidGraph.GraphData(frisbeeShooter.getRPM(), "PID0");
- *         pidGraph.GraphData(frisbeeShooter.getTargetRPM(), "PID1");
+ *     while (IsOperatorControl() && IsEnabled()) {
+ *         if (pidGraph.HasIntervalPassed()) {
+ *             pidGraph.GraphData(frisbeeShooter.getRPM(), "PID0");
+ *             pidGraph.GraphData(frisbeeShooter.getTargetRPM(), "PID1");
  *
- *         pidGraph.ResetInterval();
+ *             pidGraph.ResetInterval();
+ *         }
  *     }
  */
 
