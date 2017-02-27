@@ -10,9 +10,8 @@
 
 #include "Graph.hpp"
 
-SelectDialog::SelectDialog(
-    std::vector<std::pair<uint8_t, std::string>>& graphNames, Graph* graphData,
-    QWidget* parent)
+SelectDialog::SelectDialog(std::map<uint8_t, std::string>& graphNames,
+                           Graph* graphData, QWidget* parent)
     : QDialog(parent) {
     m_okButton = new QPushButton(tr("&Ok"));
     connect(m_okButton, SIGNAL(released()), this, SLOT(close()));
@@ -27,11 +26,11 @@ SelectDialog::SelectDialog(
 
     QVBoxLayout* checkList = new QVBoxLayout(container);
     QCheckBox* checkBox;
-    for (size_t i = 0; i < graphNames.size(); i++) {
-        checkBox = new QCheckBox(QString::fromUtf8(
-            graphNames[i].second.c_str(), graphNames[i].second.size()));
+    for (const auto& name : graphNames) {
+        checkBox = new QCheckBox(
+            QString::fromUtf8(name.second.c_str(), name.second.size()));
         connect(checkBox, SIGNAL(clicked()), m_signalMapper, SLOT(map()));
-        m_signalMapper->setMapping(checkBox, i);
+        m_signalMapper->setMapping(checkBox, name.first);
         checkList->addWidget(checkBox);
     }
 

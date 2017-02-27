@@ -89,7 +89,12 @@ private:
     int m_ipcfd_r;
     int m_ipcfd_w;
     int m_port;
+
+    /* Sorted by graph name instead of ID because the user passes in a string.
+     * (They don't know the ID.) This makes graph ID lookups take O(log n).
+     */
     std::map<std::string, uint8_t> m_graphList;
+
     std::vector<std::unique_ptr<SocketConnection>> m_connList;
 
     // Temporary buffer used in ReadPackets()

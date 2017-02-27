@@ -2,9 +2,8 @@
 
 #pragma once
 
+#include <map>
 #include <string>
-#include <utility>
-#include <vector>
 
 #include <QDialog>
 
@@ -17,8 +16,8 @@ class SelectDialog : public QDialog {
     Q_OBJECT
 
 public:
-    SelectDialog(std::vector<std::pair<uint8_t, std::string>>& graphNames,
-                 Graph* graphData, QWidget* parent = nullptr);
+    SelectDialog(std::map<uint8_t, std::string>& graphNames, Graph* graphData,
+                 QWidget* parent = nullptr);
 
 private slots:
     void selectGraph(int val);

@@ -104,7 +104,6 @@ bool Graph::recvData(void* data, size_t length) {
 Graph::Graph(MainWindow* parentWindow) : QObject(parentWindow) {
     m_window = parentWindow;
     m_dataSets.reserve(64);
-    m_graphNames.reserve(64);
     m_dataSocket = std::make_unique<QTcpSocket>(this);
     m_remoteIP = QString::fromUtf8(m_settings.getString("robotIP").c_str());
     m_dataPort = m_settings.getInt("robotGraphPort");
@@ -228,7 +227,7 @@ bool Graph::saveAsCSV() {
                 saveFile << "Time (s)"
                          << ",";
             }
-            saveFile << m_graphNames[j].second;
+            saveFile << m_graphNames[j];
 
             // If last Y axis label hasn't been written yet
             if (j + 1 < m_dataSets.size()) {
@@ -395,14 +394,8 @@ void Graph::handleSocketData() {
 
             m_state = ReceiveState::ID;
         } else if (m_state == ReceiveState::ListComplete) {
-            auto i = std::find_if(
-                m_graphNames.begin(), m_graphNames.end(), [this](auto& pair) {
-                    return m_clientListPacket.name == pair.second;
-                });
-            if (i == m_graphNames.end()) {
-                m_graphNames.emplace_back(graphID(m_clientListPacket.ID),
-                                          m_clientListPacket.name);
-            }
+            m_graphNames[graphID(m_clientListPacket.ID)] =
+                m_clientListPacket.name;
 
             // If that was the last name, exit the recv loop
             if (m_clientListPacket.eof == 1) {
@@ -437,10 +430,10 @@ void Graph::sendGraphChoices() {
     for (unsigned int i = 0; i < m_graphNames.size(); i++) {
         // If the graph data is requested
         if (m_curSelect & (1 << i)) {
-            m_hostPacket.ID = k_hostConnectPacket | m_graphNames[i].first;
+            m_hostPacket.ID = k_hostConnectPacket | i;
         } else {
             // Tell server to stop sending stream
-            m_hostPacket.ID = k_hostDisconnectPacket | m_graphNames[i].first;
+            m_hostPacket.ID = k_hostDisconnectPacket | i;
         }
 
         if (!sendData(&m_hostPacket, sizeof(m_hostPacket))) {
@@ -458,7 +451,7 @@ void Graph::sendGraphChoices() {
          */
         if (makeGraphs) {
             constexpr unsigned int parts = 3;
-            createGraph(m_graphNames[i].second,
+            createGraph(m_graphNames[i],
                         HSVtoRGB(360 / parts * i % 360, 1,
                                  1 - 0.25 * std::floor(i / parts)));
         }

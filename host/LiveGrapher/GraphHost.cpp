@@ -112,8 +112,8 @@ bool GraphHost::GraphData(float value, std::string dataset) {
 
     // Send the point to connected clients
     for (auto& conn : m_connList) {
-        for (const auto& dataset_str : conn->dataSets) {
-            if (dataset_str == i->second) {
+        for (const auto& datasetID : conn->dataSets) {
+            if (datasetID == i->second) {
                 // Send the value off
                 conn->queueWrite(packet);
             }
@@ -381,6 +381,12 @@ int GraphHost::ReadPackets(SocketConnection* conn) {
                                  conn->dataSets.end());
             break;
         case k_hostListPacket:
+            /* A graph count is compared against instead of the graph ID for
+             * terminating list traversal because the std::map is sorted by
+             * graph name instead of the ID. Since, the IDs are not necessarily
+             * in order, early traversal termination could occur.
+             */
+            size_t graphCount = 0;
             for (auto& graph : m_graphList) {
                 if (m_buf.length() < 1 + 1 + graph.first.length() + 1) {
                     m_buf.resize(1 + 1 + graph.first.length() + 1);
@@ -392,8 +398,7 @@ int GraphHost::ReadPackets(SocketConnection* conn) {
                              graph.first.length());
 
                 // Is this the last element in the list?
-                if (static_cast<size_t>(graph.second + 1) ==
-                    m_graphList.size()) {
+                if (graphCount + 1 == m_graphList.size()) {
                     m_buf[2 + m_buf[1]] = 1;
                 } else {
                     m_buf[2 + m_buf[1]] = 0;
@@ -402,7 +407,10 @@ int GraphHost::ReadPackets(SocketConnection* conn) {
                 // Queue the datagram for writing
                 conn->queueWrite(m_buf.c_str(),
                                  1 + 1 + graph.first.length() + 1);
+
+                graphCount++;
             }
+            break;
     }
 
     return 0;

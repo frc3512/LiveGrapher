@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -76,7 +77,7 @@ private:
     std::vector<DataSet> m_dataSets;
 
     // Contains names for all graphs available on host
-    std::vector<std::pair<uint8_t, std::string>> m_graphNames;
+    std::map<uint8_t, std::string> m_graphNames;
 
     // Each bit holds receive state of data set (1 = recv, 0 = not recv)
     uint64_t m_curSelect = 0;
