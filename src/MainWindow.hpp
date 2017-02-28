@@ -17,20 +17,15 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget* parent = nullptr);
 
-public slots:
-    void infoDialog(const QString& title, const QString& text);
-    void criticalDialog(const QString& title, const QString& text);
-
 private slots:
-    void about();
     void reconnect();
-    void clearAllData();
     void realtimeDataSlot(int graphId, float x, float y);
 
 private:
     std::unique_ptr<Ui::MainWindow> m_ui;
 
     Graph m_graph;
+    bool m_isPlaying = false;
 
     Settings m_settings;
     double m_xHistory;

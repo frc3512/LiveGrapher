@@ -47,6 +47,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="pauseButton">
+        <property name="text">
+         <string>Play</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -60,16 +67,23 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="clearDataButton">
+       <widget class="QPushButton" name="clearButton">
         <property name="text">
-         <string>Clear Data</string>
+         <string>Clear</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="screenshotButton">
+        <property name="text">
+         <string>Screenshot</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QPushButton" name="saveButton">
         <property name="text">
-         <string>Save</string>
+         <string>CSV</string>
         </property>
        </widget>
       </item>
@@ -83,13 +97,14 @@
      <x>0</x>
      <y>0</y>
      <width>640</width>
-     <height>26</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionScreenshot_Graph"/>
     <addaction name="actionSave_As_CSV"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
@@ -109,6 +124,11 @@
   <action name="actionAbout">
    <property name="text">
     <string>About LiveGrapher</string>
+   </property>
+  </action>
+  <action name="actionScreenshot_Graph">
+   <property name="text">
+    <string>Screenshot Graph</string>
    </property>
   </action>
  </widget>

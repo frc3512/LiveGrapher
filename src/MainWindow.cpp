@@ -11,12 +11,39 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui = std::make_unique<Ui::MainWindow>();
     m_ui->setupUi(this);
 
+    m_ui->plot->setInteraction(QCP::iRangeDrag, true);
+    m_ui->plot->setInteraction(QCP::iRangeZoom, true);
+
+    connect(m_ui->actionScreenshot_Graph, SIGNAL(triggered()), &m_graph,
+            SLOT(screenshotGraph()));
     connect(m_ui->actionSave_As_CSV, SIGNAL(triggered()), &m_graph,
             SLOT(saveAsCSV()));
-    connect(m_ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
+    connect(m_ui->actionAbout, &QAction::triggered, [this] {
+        QMessageBox::about(this, tr("About LiveGrapher"),
+                           tr("<br>LiveGrapher 3.1<br>"
+                              "Copyright &copy;2013-2017 FRC Team 3512<br>"
+                              "FRC Team 3512<br>"
+                              "All Rights Reserved"));
+    });
     connect(m_ui->connectButton, SIGNAL(released()), this, SLOT(reconnect()));
-    connect(m_ui->clearDataButton, SIGNAL(released()), this,
-            SLOT(clearAllData()));
+
+    /* Pauses graphing so user can inspect it (disables auto-scrolling but data
+     * is still appended to any graphs)
+     */
+    connect(m_ui->pauseButton, &QPushButton::released, [this] {
+        if (m_isPlaying) {
+            m_ui->pauseButton->setText("Play");
+            m_isPlaying = false;
+        } else if (m_graph.isConnected()) {
+            m_ui->pauseButton->setText("Pause");
+            m_isPlaying = true;
+        }
+    });
+
+    connect(m_ui->clearButton, &QPushButton::released,
+            [this] { m_graph.clearAllData(); });
+    connect(m_ui->screenshotButton, SIGNAL(released()), &m_graph,
+            SLOT(screenshotGraph()));
     connect(m_ui->saveButton, SIGNAL(released()), &m_graph, SLOT(saveAsCSV()));
 
     QCustomPlot* customPlot = m_ui->plot;
@@ -37,35 +64,25 @@ MainWindow::MainWindow(QWidget* parent)
     connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)),
             customPlot->yAxis2, SLOT(setRange(QCPRange)));
 
-    /* Bind signals and slots for communication between the graph TCP client
-     * thread and the UI thread
-     */
-    connect(&m_graph, SIGNAL(realtimeDataSignal(int, float, float)), this,
-            SLOT(realtimeDataSlot(int, float, float)));
-
     m_xHistory = m_settings.getDouble("xHistory");
     m_lastTime = std::chrono::steady_clock::now();
 }
 
-void MainWindow::infoDialog(const QString& title, const QString& text) {
-    QMessageBox::information(this, title, text);
+void MainWindow::reconnect() {
+    if (m_graph.isConnected()) {
+        m_ui->connectButton->setText("Connect");
+        m_graph.disconnect();
+    } else {
+        m_graph.reconnect();
+
+        if (m_graph.isConnected()) {
+            m_ui->connectButton->setText("Disconnect");
+
+            m_isPlaying = true;
+            m_ui->pauseButton->setText("Pause");
+        }
+    }
 }
-
-void MainWindow::criticalDialog(const QString& title, const QString& text) {
-    QMessageBox::critical(this, title, text);
-}
-
-void MainWindow::about() {
-    QMessageBox::about(this, tr("About LiveGrapher"),
-                       tr("<br>LiveGrapher 3.0<br>"
-                          "Copyright &copy;2013-2016 FRC Team 3512<br>"
-                          "FRC Team 3512<br>"
-                          "All Rights Reserved"));
-}
-
-void MainWindow::reconnect() { m_graph.reconnect(); }
-
-void MainWindow::clearAllData() { m_graph.clearAllData(); }
 
 void MainWindow::realtimeDataSlot(int graphId, float x, float y) {
     QCustomPlot* plot = m_ui->plot;
@@ -79,23 +96,26 @@ void MainWindow::realtimeDataSlot(int graphId, float x, float y) {
     plot->graph(graphId)->addData(x, y);
 
     if (std::chrono::steady_clock::now() - m_lastTime > 250ms) {
-        for (int i = 0; i < plot->graphCount(); i++) {
-            // Rescale value (vertical) axis to fit the current data
-            if (i == 0) {
-                plot->graph(i)->rescaleValueAxis();
-            } else {
-                plot->graph(i)->rescaleValueAxis(true);
+        // Don't rescale X axis when paused
+        if (m_isPlaying) {
+            for (int i = 0; i < plot->graphCount(); i++) {
+                // Rescale value (vertical) axis to fit the current data
+                if (i == 0) {
+                    plot->graph(i)->rescaleValueAxis();
+                } else {
+                    plot->graph(i)->rescaleValueAxis(true);
+                }
             }
-
-            // Remove data of lines that are outside visible range
-            plot->graph(i)->removeDataBefore(x - m_xHistory);
         }
 
         m_lastTime = std::chrono::steady_clock::now();
     }
 
-    // Make key axis range scroll with the data (at a constant range size)
-    plot->xAxis->setRange(x, m_xHistory, Qt::AlignRight);
+    // Don't rescale Y axis when paused
+    if (m_isPlaying) {
+        // Make key axis range scroll with the data (at a constant range size)
+        plot->xAxis->setRange(x, m_xHistory, Qt::AlignRight);
+    }
 
     static uint64_t lastTime = 0;
     static uint64_t currentTime;

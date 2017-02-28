@@ -143,6 +143,12 @@ void Graph::reconnect() {
     }
 }
 
+void Graph::disconnect() { m_dataSocket->disconnectFromHost(); }
+
+bool Graph::isConnected() const {
+    return m_dataSocket->state() == QAbstractSocket::ConnectedState;
+}
+
 void Graph::addData(unsigned int index, const std::pair<float, float>&& data) {
     m_dataSets[index].push_back(data);
     m_window->realtimeDataSlot(index, data.first, data.second);
@@ -184,35 +190,37 @@ void Graph::removeGraph(unsigned int index) {
     m_window->m_ui->plot->legend->removeItem(index);
 }
 
+bool Graph::screenshotGraph() {
+    // There isn't any point in creating a file with no data in it
+    if (m_dataSets.size() == 0) {
+        QMessageBox::critical(m_window, QObject::tr("Save Data"),
+                              QObject::tr("No graphs exist"));
+        return false;
+    } else {
+        bool success = m_window->m_ui->plot->savePng(
+            QString::fromStdString("./" + generateFileName() + ".png"));
+
+        if (success) {
+            QMessageBox::information(m_window, QObject::tr("Save Data"),
+                                     QObject::tr("Screenshot successful"));
+            return true;
+        } else {
+            QMessageBox::critical(m_window, QObject::tr("Save Data"),
+                                  QObject::tr("Screenshot failed"));
+            return false;
+        }
+    }
+}
+
 bool Graph::saveAsCSV() {
     // There isn't any point in creating a file with no data in it
     if (m_dataSets.size() == 0) {
         QMessageBox::critical(m_window, QObject::tr("Save Data"),
-                              QObject::tr("No graph data to save"));
+                              QObject::tr("No graphs exist"));
         return false;
     }
 
-    /* ===== Create unique name for file ===== */
-    typedef std::chrono::duration<
-        int,
-        std::ratio_multiply<std::chrono::hours::period, std::ratio<24>>::type>
-        days;
-    auto tp = std::chrono::system_clock::now().time_since_epoch();
-    auto d = std::chrono::duration_cast<days>(tp);
-    tp -= d;
-    auto h = std::chrono::duration_cast<std::chrono::hours>(tp);
-    tp -= h;
-    auto m = std::chrono::duration_cast<std::chrono::minutes>(tp);
-    tp -= m;
-    auto s = std::chrono::duration_cast<std::chrono::seconds>(tp);
-    tp -= s;
-
-    std::stringstream ss;
-    ss << "Graph-" << d.count() << "-T" << h.count() << "." << m.count() << "."
-       << s.count() << ".csv";
-    /* ======================================= */
-
-    std::ofstream saveFile(ss.str(), std::ios_base::trunc);
+    std::ofstream saveFile(generateFileName() + ".csv", std::ios_base::trunc);
 
     if (saveFile.is_open()) {
         // Tracks positions in each data set; start at 0 for each
@@ -276,13 +284,12 @@ bool Graph::saveAsCSV() {
 
         saveFile.close();
 
-        QMessageBox::information(
-            m_window, QObject::tr("Save Data"),
-            QObject::tr("Successfully saved graph data to file"));
+        QMessageBox::information(m_window, QObject::tr("Save Data"),
+                                 QObject::tr("Export to CSV successful"));
         return true;
     } else {
         QMessageBox::critical(m_window, QObject::tr("Save Data"),
-                              QObject::tr("Failed to save graph data to file"));
+                              QObject::tr("Open CSV file failed"));
         return false;
     }
 }
@@ -466,4 +473,26 @@ uint8_t Graph::packetID(uint8_t id) {
 uint8_t Graph::graphID(uint8_t id) {
     // Masks six low-order bits
     return id & 0x2F;
+}
+
+std::string Graph::generateFileName() {
+    typedef std::chrono::duration<
+        int,
+        std::ratio_multiply<std::chrono::hours::period, std::ratio<24>>::type>
+        days;
+    auto tp = std::chrono::system_clock::now().time_since_epoch();
+    auto d = std::chrono::duration_cast<days>(tp);
+    tp -= d;
+    auto h = std::chrono::duration_cast<std::chrono::hours>(tp);
+    tp -= h;
+    auto m = std::chrono::duration_cast<std::chrono::minutes>(tp);
+    tp -= m;
+    auto s = std::chrono::duration_cast<std::chrono::seconds>(tp);
+    tp -= s;
+
+    std::stringstream ss;
+    ss << "Graph-" << d.count() << "-T" << h.count() << "." << m.count() << "."
+       << s.count();
+
+    return ss.str();
 }

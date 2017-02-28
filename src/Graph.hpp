@@ -42,6 +42,12 @@ public:
     // Kills receiving thread and restarts it; this function will block
     void reconnect();
 
+    // Kills receiving thread
+    void disconnect();
+
+    // Returns whether client is connected to graph host
+    bool isConnected() const;
+
     // Add data point to graph at given index (push back)
     void addData(unsigned int index, const std::pair<float, float>&& point);
 
@@ -55,8 +61,11 @@ public:
     void removeGraph(unsigned int index);
 
 public slots:
-    /* Saves all graph data to CSV in the executable's directory
-     * returns true upon success
+    // Saves a screenshot of the current graph window in PNG format
+    bool screenshotGraph();
+
+    /* Saves all graph data to CSV in the executable's directory. Returns true
+     * upon success.
      */
     bool saveAsCSV();
 
@@ -110,6 +119,9 @@ private:
 
     static inline uint8_t packetID(uint8_t id);
     static inline uint8_t graphID(uint8_t id);
+
+    // Generates unique name for a file based on the current time
+    std::string generateFileName();
 
     friend class SelectDialog;
 };
