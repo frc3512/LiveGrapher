@@ -1,53 +1,14 @@
-cExtensions {
-  c
-  h
+cppHeaderFileInclude {
+  \.h$
+  \.hpp$
+  \.inl$
 }
 
-cppHeaderExtensions {
-  hpp
-  inl
+cppSrcFileInclude {
+  \.cpp$
 }
 
-cppSrcExtensions {
-  cpp
-}
-
-otherExtensions {
-}
-
-genFolderExclude {
-}
-
-genFileExclude {
+generatedFileExclude {
   \.ico$
-  \.o$
-  LiveGrapher$
-  LiveGrapher\.pro\.user$
-  Makefile
-  moc_
   qcustomplot\.
-  qrc_
-  ui_
-}
-
-modifiableFolderExclude {
-  \.git
-}
-
-modifiableFileExclude {
-}
-
-includeRelated {
-}
-
-includeCSys {
-}
-
-includeCppSys {
-}
-
-includeOtherLibs {
-}
-
-includeProject {
 }
