@@ -21,8 +21,9 @@
 #include <signal.h>
 #endif
 
-using namespace std::chrono;
-using namespace std::chrono_literals;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using std::chrono::system_clock;
 
 GraphHost::GraphHost(int port) {
     m_currentTime =
