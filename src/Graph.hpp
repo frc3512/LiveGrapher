@@ -16,7 +16,7 @@
 #include <QObject>
 #include <QTcpSocket>
 
-#include "../common/Protocol.hpp"
+#include "Protocol.hpp"
 #include "Settings.hpp"
 
 enum class ReceiveState {

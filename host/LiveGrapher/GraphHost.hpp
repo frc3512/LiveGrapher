@@ -13,6 +13,7 @@
 #include <thread>
 #include <vector>
 
+#include "Protocol.hpp"
 #include "SocketConnection.hpp"
 
 /**
@@ -42,9 +43,6 @@
  *         }
  *     }
  */
-
-#include "../../common/Protocol.hpp"
-
 class GraphHost {
 public:
     explicit GraphHost(int port);
