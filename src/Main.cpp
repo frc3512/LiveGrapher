@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2017 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
 
 #include <QApplication>
 #include <QIcon>
