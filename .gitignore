@@ -1,8 +1,10 @@
 *.csv
+*.d
 *.dll
 *.o
 *.exe
 LiveGrapher
+LiveGrapherTest
 !LiveGrapher/
 *.swp
 

@@ -1,6 +1,6 @@
 // Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
 
-#include "GraphHost.hpp"
+#include "LiveGrapher/GraphHost.hpp"
 
 #include <algorithm>
 #include <cstring>
