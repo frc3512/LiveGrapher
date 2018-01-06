@@ -14,8 +14,6 @@
 #include <cstring>
 #include <utility>
 
-#include "LiveGrapher/GraphHost.hpp"
-
 SocketConnection::SocketConnection(int nfd, int ipcWriteSock) {
     fd = nfd;
     m_ipcfd_w = ipcWriteSock;

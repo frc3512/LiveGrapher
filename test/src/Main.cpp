@@ -7,13 +7,13 @@
 
 #include "SCurveProfile.hpp"
 #include "TrapezoidProfile.hpp"
-#include "LiveGrapher/GraphHost.hpp"
+#include "LiveGrapher/LiveGrapher.hpp"
 
 using namespace std::chrono_literals;
 
 int main() {
-    GraphHost gh(3513);
-    gh.SetSendInterval(10ms);
+    LiveGrapher liveGrapher(3513);
+    liveGrapher.SetSendInterval(10ms);
 
     // Ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
@@ -39,12 +39,12 @@ int main() {
         sSetpoint = sProfile.updateSetpoint(curTime);
         tSetpoint = tProfile.updateSetpoint(curTime);
 
-        if (gh.HasIntervalPassed()) {
-            gh.GraphData(sSetpoint, "SCurve SP");
-            gh.GraphData(4.5, "Test");
-            gh.GraphData(tSetpoint, "TCurve SP");
+        if (liveGrapher.HasIntervalPassed()) {
+            liveGrapher.GraphData(sSetpoint, "SCurve SP");
+            liveGrapher.GraphData(4.5, "Test");
+            liveGrapher.GraphData(tSetpoint, "TCurve SP");
 
-            gh.ResetInterval();
+            liveGrapher.ResetInterval();
         }
 
         if (tProfile.atGoal()) {

@@ -3,7 +3,7 @@
 #pragma once
 
 template <typename Rep, typename Period>
-void GraphHost::SetSendInterval(
+void LiveGrapher::SetSendInterval(
     const std::chrono::duration<Rep, Period>& time) {
     using std::chrono::duration_cast;
     using std::chrono::milliseconds;

@@ -1,6 +1,6 @@
 // Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
 
-#include "LiveGrapher/GraphHost.hpp"
+#include "LiveGrapher/LiveGrapher.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -25,7 +25,7 @@ using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::system_clock;
 
-GraphHost::GraphHost(int port) {
+LiveGrapher::LiveGrapher(int port) {
     m_currentTime =
         duration_cast<milliseconds>(system_clock::now().time_since_epoch())
             .count();
@@ -56,7 +56,7 @@ GraphHost::GraphHost(int port) {
     m_thread = std::thread([this] { socket_threadmain(); });
 }
 
-GraphHost::~GraphHost() {
+LiveGrapher::~LiveGrapher() {
     // Tell the other thread to stop
     write(m_ipcfd_w, "x", 1);
 
@@ -68,7 +68,7 @@ GraphHost::~GraphHost() {
     close(m_ipcfd_w);
 }
 
-bool GraphHost::GraphData(float value, std::string dataset) {
+bool LiveGrapher::GraphData(float value, std::string dataset) {
     if (!m_running) {
         return false;
     }
@@ -120,7 +120,7 @@ bool GraphHost::GraphData(float value, std::string dataset) {
     return true;
 }
 
-bool GraphHost::HasIntervalPassed() {
+bool LiveGrapher::HasIntervalPassed() {
     m_currentTime =
         duration_cast<milliseconds>(system_clock::now().time_since_epoch())
             .count();
@@ -128,19 +128,19 @@ bool GraphHost::HasIntervalPassed() {
     return m_currentTime - m_lastTime > m_sendInterval;
 }
 
-void GraphHost::ResetInterval() { m_lastTime = m_currentTime; }
+void LiveGrapher::ResetInterval() { m_lastTime = m_currentTime; }
 
-uint8_t GraphHost::packetID(uint8_t id) {
+uint8_t LiveGrapher::packetID(uint8_t id) {
     // Masks two high-order bits
     return id & 0xC0;
 }
 
-uint8_t GraphHost::graphID(uint8_t id) {
+uint8_t LiveGrapher::graphID(uint8_t id) {
     // Masks six low-order bits
     return id & 0x2F;
 }
 
-void GraphHost::socket_threadmain() {
+void LiveGrapher::socket_threadmain() {
     int listenfd;
     int maxfd;
     uint8_t ipccmd = 0;
@@ -253,7 +253,7 @@ void GraphHost::socket_threadmain() {
 /* Listens on a specified port (listenport), and returns the file descriptor
  * to the listening socket.
  */
-int GraphHost::socket_listen(int port, uint32_t s_addr) {
+int LiveGrapher::socket_listen(int port, uint32_t s_addr) {
     sockaddr_in serv_addr;
     int sd = -1;
 
@@ -302,7 +302,7 @@ int GraphHost::socket_listen(int port, uint32_t s_addr) {
     return sd;
 }
 
-int GraphHost::socket_accept(int listenfd) {
+int LiveGrapher::socket_accept(int listenfd) {
 #ifdef __VXWORKS__
     int clilen;
 #else
@@ -352,7 +352,7 @@ int GraphHost::socket_accept(int listenfd) {
     return new_fd;
 }
 
-int GraphHost::ReadPackets(SocketConnection* conn) {
+int LiveGrapher::ReadPackets(SocketConnection* conn) {
     int error;
     uint8_t id;
 

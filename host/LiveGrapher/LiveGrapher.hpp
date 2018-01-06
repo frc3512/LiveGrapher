@@ -21,17 +21,17 @@
  *
  * Usage:
  *
- * The GraphHost interface is started upon object initialization.
+ * The LiveGrapher interface is started upon object initialization.
  *
- * Call graphData() to send data over the network to a LiveGrapher client.
+ * Call GraphData() to send data over the network to a LiveGrapher client.
  *
  * The time value in each data pair is handled internally.
  *
- * Use the function hasIntervalPassed() to limit the frequency of data sending
+ * Use the function HasIntervalPassed() to limit the frequency of data sending
  * in looping situations.
  *
  * Example:
- *     GraphHost pidGraph(3513);
+ *     LiveGrapher pidGraph(3513);
  *     pidGraph.SetSendInterval(5ms);
  *
  *     while (IsOperatorControl() && IsEnabled()) {
@@ -43,10 +43,10 @@
  *         }
  *     }
  */
-class GraphHost {
+class LiveGrapher {
 public:
-    explicit GraphHost(int port);
-    ~GraphHost();
+    explicit LiveGrapher(int port);
+    ~LiveGrapher();
 
     /* Send data (y value) for a given dataset to remote client. The current
      * time is sent as the x value. Returns true if data was sent successfully
@@ -111,4 +111,4 @@ private:
     int ReadPackets(SocketConnection* conn);
 };
 
-#include "GraphHost.inl"
+#include "LiveGrapher.inl"
