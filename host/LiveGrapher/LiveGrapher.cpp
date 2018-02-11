@@ -88,7 +88,7 @@ bool LiveGrapher::GraphData(float value, std::string dataset) {
     }
 
     ClientDataPacket packet;
-    packet.ID = k_clientDataPacket | i->second;
+    packet.ID = kClientDataPacket | i->second;
 
     // Change to network byte order
     // Swap bytes in x, and copy into the payload struct
@@ -362,20 +362,20 @@ int LiveGrapher::ReadPackets(SocketConnection* conn) {
     }
 
     switch (packetID(id)) {
-        case k_hostConnectPacket:
+        case kHostConnectPacket:
             // Start sending data for the graph specified by the ID
             if (std::find(conn->dataSets.begin(), conn->dataSets.end(),
                           graphID(id)) == conn->dataSets.end()) {
                 conn->dataSets.push_back(graphID(id));
             }
             break;
-        case k_hostDisconnectPacket:
+        case kHostDisconnectPacket:
             // Stop sending data for the graph specified by the ID
             conn->dataSets.erase(std::remove(conn->dataSets.begin(),
                                              conn->dataSets.end(), graphID(id)),
                                  conn->dataSets.end());
             break;
-        case k_hostListPacket:
+        case kHostListPacket:
             /* A graph count is compared against instead of the graph ID for
              * terminating list traversal because the std::map is sorted by
              * graph name instead of the ID. Since, the IDs are not necessarily
@@ -387,7 +387,7 @@ int LiveGrapher::ReadPackets(SocketConnection* conn) {
                     m_buf.resize(1 + 1 + graph.first.length() + 1);
                 }
 
-                m_buf[0] = k_clientListPacket | graph.second;
+                m_buf[0] = kClientListPacket | graph.second;
                 m_buf[1] = graph.first.length();
                 std::strncpy(&m_buf[2], graph.first.c_str(),
                              graph.first.length());

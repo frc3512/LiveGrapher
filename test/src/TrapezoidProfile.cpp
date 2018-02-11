@@ -1,10 +1,7 @@
-// =============================================================================
-// File Name: TrapezoidProfile.cpp
-// Description: Provides trapezoidal velocity control
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
+// Copyright (c) 2018 FRC Team 3512. All Rights Reserved.
 
 #include "TrapezoidProfile.hpp"
+
 #include <cmath>
 
 TrapezoidProfile::TrapezoidProfile(double maxV, double timeToMaxV) {
@@ -12,8 +9,7 @@ TrapezoidProfile::TrapezoidProfile(double maxV, double timeToMaxV) {
     setTimeToMaxV(timeToMaxV);
 }
 
-TrapezoidProfile::~TrapezoidProfile() {
-}
+TrapezoidProfile::~TrapezoidProfile() {}
 
 double TrapezoidProfile::updateSetpoint(double curTime, double curSource) {
     std::lock_guard<decltype(m_varMutex)> lock(m_varMutex);
@@ -23,12 +19,10 @@ double TrapezoidProfile::updateSetpoint(double curTime, double curSource) {
     if (curTime < m_timeToMaxVelocity) {
         // Accelerate up
         tmpSP = (m_acceleration * curTime) * m_sign;
-    }
-    else if (curTime < m_timeFromMaxVelocity) {
+    } else if (curTime < m_timeFromMaxVelocity) {
         // Maintain max velocity
         tmpSP = m_profileMaxVelocity * m_sign;
-    }
-    else if (curTime < m_timeTotal) {
+    } else if (curTime < m_timeTotal) {
         // Accelerate down
         double decelTime = curTime - m_timeFromMaxVelocity;
         double v = m_profileMaxVelocity - m_acceleration * decelTime;
@@ -38,8 +32,7 @@ double TrapezoidProfile::updateSetpoint(double curTime, double curSource) {
 
     if (m_mode == SetpointMode::distance) {
         m_setpoint += tmpSP * (curTime - m_lastTime);
-    }
-    else if (m_mode == SetpointMode::velocity) {
+    } else if (m_mode == SetpointMode::velocity) {
         m_setpoint = tmpSP;
     }
 
@@ -68,9 +61,9 @@ double TrapezoidProfile::setGoal(double t, double goal, double curSource) {
      *       = m_setpoint - m_velocity * m_timeToMaxVelocity
      *
      * t is time at maximum velocity
-     * t = delta (from previous comment) / m_velocity (where m_velocity is maximum velocity)
-     *   = (m_setpoint - m_velocity * m_timeToMaxVelocity) / m_velocity
-     *   = m_setpoint/m_velocity - m_timeToMaxVelocity
+     * t = delta (from previous comment) / m_velocity (where m_velocity is
+     * maximum velocity) = (m_setpoint - m_velocity * m_timeToMaxVelocity) /
+     * m_velocity = m_setpoint/m_velocity - m_timeToMaxVelocity
      */
     double timeAtMaxV = m_sign * m_setpoint / m_velocity - m_timeToMaxVelocity;
 
@@ -89,14 +82,13 @@ double TrapezoidProfile::setGoal(double t, double goal, double curSource) {
          * 1/2 * a * t^2 = m_setpoint/2
          * a * t^2 = m_setpoint
          * t^2 = m_setpoint / a
-         * t = sqrt( m_setpoint / a )
+         * t = std::sqrt( m_setpoint / a )
          */
-        m_timeToMaxVelocity = sqrt(m_sign * m_setpoint / m_acceleration);
+        m_timeToMaxVelocity = std::sqrt(m_sign * m_setpoint / m_acceleration);
         m_timeFromMaxVelocity = m_timeToMaxVelocity;
         m_timeTotal = 2 * m_timeToMaxVelocity;
         m_profileMaxVelocity = m_acceleration * m_timeToMaxVelocity;
-    }
-    else {
+    } else {
         m_timeFromMaxVelocity = m_timeToMaxVelocity + timeAtMaxV;
         m_timeTotal = m_timeFromMaxVelocity + m_timeToMaxVelocity;
         m_profileMaxVelocity = m_velocity;
@@ -108,27 +100,20 @@ double TrapezoidProfile::setGoal(double t, double goal, double curSource) {
         // Set setpoint to current distance since setpoint hasn't moved yet
         m_setpoint = curSource;
         return curSource;
-    }
-    else if (m_mode == SetpointMode::velocity) {
+    } else if (m_mode == SetpointMode::velocity) {
         // Set setpoint to zero since setpoint hasn't moved yet
         m_setpoint = 0;
         return 0.f;
-    }
-    else {
+    } else {
         m_setpoint = 0;
         return curSource;
     }
 }
 
-void TrapezoidProfile::setMaxVelocity(double v) {
-    m_velocity = v;
-}
+void TrapezoidProfile::setMaxVelocity(double v) { m_velocity = v; }
 
-double TrapezoidProfile::getMaxVelocity() const {
-    return m_velocity;
-}
+double TrapezoidProfile::getMaxVelocity() const { return m_velocity; }
 
 void TrapezoidProfile::setTimeToMaxV(double timeToMaxV) {
     m_acceleration = m_velocity / timeToMaxV;
 }
-

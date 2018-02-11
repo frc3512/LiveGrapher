@@ -1,8 +1,4 @@
-// =============================================================================
-// File Name: ProfileBase.cpp
-// Description: Base class for all types of motion profile controllers
-// Author: FRC Team 3512, Spartatroniks
-// =============================================================================
+// Copyright (c) 2018 FRC Team 3512. All Rights Reserved.
 
 #include "ProfileBase.hpp"
 
@@ -11,20 +7,13 @@ ProfileBase::ProfileBase() {
     resetProfile();
 }
 
-ProfileBase::~ProfileBase() {
-}
+ProfileBase::~ProfileBase() {}
 
-bool ProfileBase::atGoal() {
-    return m_lastTime >= m_timeTotal;
-}
+bool ProfileBase::atGoal() { return m_lastTime >= m_timeTotal; }
 
-double ProfileBase::getGoal() const {
-    return m_goal;
-}
+double ProfileBase::getGoal() const { return m_goal; }
 
-double ProfileBase::getSetpoint() const {
-    return m_setpoint;
-}
+double ProfileBase::getSetpoint() const { return m_setpoint; }
 
 void ProfileBase::resetProfile() {
     m_goal = 0.0;
@@ -33,11 +22,6 @@ void ProfileBase::resetProfile() {
     m_timeTotal = 0.0;
 }
 
-void ProfileBase::setMode(SetpointMode mode) {
-    m_mode = mode;
-}
+void ProfileBase::setMode(SetpointMode mode) { m_mode = mode; }
 
-SetpointMode ProfileBase::getMode() const {
-    return m_mode;
-}
-
+SetpointMode ProfileBase::getMode() const { return m_mode; }

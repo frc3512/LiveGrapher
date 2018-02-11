@@ -1,3 +1,5 @@
+// Copyright (c) 2018 FRC Team 3512. All Rights Reserved.
+
 #include <signal.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -5,9 +7,9 @@
 #include <chrono>
 #include <iostream>
 
+#include "LiveGrapher/LiveGrapher.hpp"
 #include "SCurveProfile.hpp"
 #include "TrapezoidProfile.hpp"
-#include "LiveGrapher/LiveGrapher.hpp"
 
 using namespace std::chrono_literals;
 
@@ -25,9 +27,10 @@ int main() {
     tProfile.setGoal(0, goal);
 
     using clock = std::chrono::high_resolution_clock;
-    using namespace std::chrono;
 
-    uint64_t startTime = duration_cast<milliseconds>(clock::now().time_since_epoch()).count();
+    uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             clock::now().time_since_epoch())
+                             .count();
     float curTime = 0;
     float sSetpoint = 0.f;
     float tSetpoint = 0.f;
@@ -35,7 +38,11 @@ int main() {
     sProfile.resetProfile();
     tProfile.resetProfile();
     while (1) {
-        curTime = (duration_cast<milliseconds>(clock::now().time_since_epoch()).count() - startTime) / 1000.f;
+        curTime = (std::chrono::duration_cast<std::chrono::milliseconds>(
+                       clock::now().time_since_epoch())
+                       .count() -
+                   startTime) /
+                  1000.f;
         sSetpoint = sProfile.updateSetpoint(curTime);
         tSetpoint = tProfile.updateSetpoint(curTime);
 
@@ -48,13 +55,14 @@ int main() {
         }
 
         if (tProfile.atGoal()) {
-            startTime = duration_cast<milliseconds>(clock::now().time_since_epoch()).count();
+            startTime =
+                duration_cast<milliseconds>(clock::now().time_since_epoch())
+                    .count();
 
             if (sProfile.getGoal() == goal) {
                 sProfile.setGoal(curTime, 0, sProfile.getGoal());
                 tProfile.setGoal(curTime, 0, tProfile.getGoal());
-            }
-            else {
+            } else {
                 sProfile.setGoal(curTime, goal, sProfile.getGoal());
                 tProfile.setGoal(curTime, goal, tProfile.getGoal());
             }
@@ -63,4 +71,3 @@ int main() {
         std::this_thread::sleep_for(1ms);
     }
 }
-
