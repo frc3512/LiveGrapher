@@ -55,9 +55,9 @@ int main() {
         }
 
         if (tProfile.atGoal()) {
-            startTime =
-                duration_cast<milliseconds>(clock::now().time_since_epoch())
-                    .count();
+            startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            clock::now().time_since_epoch())
+                            .count();
 
             if (sProfile.getGoal() == goal) {
                 sProfile.setGoal(curTime, 0, sProfile.getGoal());
