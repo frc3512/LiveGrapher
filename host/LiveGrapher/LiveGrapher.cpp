@@ -103,7 +103,7 @@ bool LiveGrapher::GraphData(float value, std::string dataset) {
     ytmp = htonl(ytmp);
     std::memcpy(&packet.y, &ytmp, sizeof(ytmp));
 
-    m_mutex.lock();
+    std::lock_guard<std::mutex> lock(m_mutex);
 
     // Send the point to connected clients
     for (auto& conn : m_connList) {
@@ -114,8 +114,6 @@ bool LiveGrapher::GraphData(float value, std::string dataset) {
             }
         }
     }
-
-    m_mutex.unlock();
 
     return true;
 }
@@ -167,23 +165,25 @@ void LiveGrapher::socket_threadmain() {
         // Reset the maxfd
         maxfd = listenfd;
 
-        // Add the file descriptors to the list
-        m_mutex.lock();
-        for (auto& conn : m_connList) {
-            if (maxfd < conn->fd) {
-                maxfd = conn->fd;
-            }
-            if (conn->selectflags & SocketConnection::Read) {
-                FD_SET(conn->fd, &readfds);
-            }
-            if (conn->selectflags & SocketConnection::Write) {
-                FD_SET(conn->fd, &writefds);
-            }
-            if (conn->selectflags & SocketConnection::Error) {
-                FD_SET(conn->fd, &errorfds);
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+
+            // Add the file descriptors to the list
+            for (auto& conn : m_connList) {
+                if (maxfd < conn->fd) {
+                    maxfd = conn->fd;
+                }
+                if (conn->selectflags & SocketConnection::Read) {
+                    FD_SET(conn->fd, &readfds);
+                }
+                if (conn->selectflags & SocketConnection::Write) {
+                    FD_SET(conn->fd, &writefds);
+                }
+                if (conn->selectflags & SocketConnection::Error) {
+                    FD_SET(conn->fd, &errorfds);
+                }
             }
         }
-        m_mutex.unlock();
 
         // Select on the listener fd
         FD_SET(listenfd, &readfds);
@@ -194,29 +194,31 @@ void LiveGrapher::socket_threadmain() {
         // Select on the file descriptors
         select(maxfd + 1, &readfds, &writefds, &errorfds, nullptr);
 
-        m_mutex.lock();
-        auto conn = m_connList.begin();
-        while (conn != m_connList.end()) {
-            if (FD_ISSET((*conn)->fd, &readfds)) {
-                // Handle reading
-                if (ReadPackets(conn->get()) == -1) {
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+
+            auto conn = m_connList.begin();
+            while (conn != m_connList.end()) {
+                if (FD_ISSET((*conn)->fd, &readfds)) {
+                    // Handle reading
+                    if (ReadPackets(conn->get()) == -1) {
+                        conn = m_connList.erase(conn);
+                        continue;
+                    }
+                }
+                if (FD_ISSET((*conn)->fd, &writefds)) {
+                    // Handle writing
+                    (*conn)->writePackets();
+                }
+                if (FD_ISSET((*conn)->fd, &errorfds)) {
+                    // Handle errors
                     conn = m_connList.erase(conn);
                     continue;
                 }
-            }
-            if (FD_ISSET((*conn)->fd, &writefds)) {
-                // Handle writing
-                (*conn)->writePackets();
-            }
-            if (FD_ISSET((*conn)->fd, &errorfds)) {
-                // Handle errors
-                conn = m_connList.erase(conn);
-                continue;
-            }
 
-            conn++;
+                conn++;
+            }
         }
-        m_mutex.unlock();
 
         // Check for listener condition
         if (FD_ISSET(listenfd, &readfds)) {
@@ -229,11 +231,10 @@ void LiveGrapher::socket_threadmain() {
                 setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,
                            reinterpret_cast<char*>(&yes), sizeof(yes));
 
-                m_mutex.lock();
+                std::lock_guard<std::mutex> lock(m_mutex);
                 // Add it to the list, this makes it a bit non-thread-safe
                 m_connList.emplace_back(
                     std::make_unique<SocketConnection>(fd, m_ipcfd_w));
-                m_mutex.unlock();
             }
         }
 
