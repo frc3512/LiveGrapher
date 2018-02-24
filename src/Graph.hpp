@@ -5,7 +5,6 @@
 #include <stdint.h>
 
 #include <map>
-#include <memory>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -77,12 +76,12 @@ private slots:
     void sendGraphChoices();
 
 private:
-    MainWindow* m_window;
+    MainWindow& m_window;
 
     Settings m_settings{"IPSettings.txt"};
 
     // Contains graph data to plot
-    typedef std::vector<std::pair<float, float>> DataSet;
+    using DataSet = std::vector<std::pair<float, float>>;
     std::vector<DataSet> m_dataSets;
 
     // Contains names for all graphs available on host
@@ -91,7 +90,7 @@ private:
     // Each bit holds receive state of data set (1 = recv, 0 = not recv)
     uint64_t m_curSelect = 0;
 
-    std::unique_ptr<QTcpSocket> m_dataSocket;
+    QTcpSocket m_dataSocket{this};
 
     QHostAddress m_remoteIP;
     uint16_t m_dataPort;
@@ -103,10 +102,6 @@ private:
     ClientListPacket m_clientListPacket;
     ReceiveState m_state = ReceiveState::ID;
 
-    // Used for endianness conversions
-    uint64_t xtmp;
-    uint32_t ytmp;
-
     /* Sends block of data to host. Returns 'true' on success or 'false' on
      * failure
      */
@@ -117,8 +112,8 @@ private:
      */
     bool recvData(void* data, size_t length);
 
-    static inline uint8_t packetID(uint8_t id);
-    static inline uint8_t graphID(uint8_t id);
+    static constexpr uint8_t extractPacketID(uint8_t id);
+    static constexpr uint8_t extractGraphID(uint8_t id);
 
     // Generates unique name for a file based on the current time
     std::string generateFileName();

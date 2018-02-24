@@ -2,15 +2,17 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include <map>
 #include <string>
 
 #include <QDialog>
+#include <QPushButton>
+#include <QScrollArea>
+#include <QSignalMapper>
 
-class QPushButton;
-class QScrollArea;
 class Graph;
-class QSignalMapper;
 
 class SelectDialog : public QDialog {
     Q_OBJECT
@@ -23,8 +25,8 @@ private slots:
     void selectGraph(int val);
 
 private:
-    QPushButton* m_okButton;
-    QScrollArea* m_scrollArea;
-    Graph* m_graph;
-    QSignalMapper* m_signalMapper;
+    Graph& m_graph;
+    QPushButton m_okButton{QObject::tr("&Ok")};
+    QScrollArea m_scrollArea;
+    QSignalMapper m_signalMapper{this};
 };

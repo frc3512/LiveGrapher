@@ -3,8 +3,6 @@
 #pragma once
 
 #include <chrono>
-#include <memory>
-#include <mutex>
 
 #include <QMainWindow>
 
@@ -22,7 +20,7 @@ private slots:
     void realtimeDataSlot(int graphId, float x, float y);
 
 private:
-    std::unique_ptr<Ui::MainWindow> m_ui;
+    Ui::MainWindow m_ui;
 
     Graph m_graph;
     bool m_isPlaying = false;
