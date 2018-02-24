@@ -147,7 +147,7 @@ bool Graph::isConnected() const {
     return m_dataSocket.state() == QAbstractSocket::ConnectedState;
 }
 
-void Graph::addData(unsigned int index, const std::pair<float, float>&& data) {
+void Graph::addData(uint32_t index, const std::pair<float, float>&& data) {
     m_dataSets[index].push_back(data);
     m_window.realtimeDataSlot(index, data.first, data.second);
 }
@@ -180,7 +180,7 @@ void Graph::createGraph(const std::string& name, QColor color) {
     customPlot->graph()->setPen(pen);
 }
 
-void Graph::removeGraph(unsigned int index) {
+void Graph::removeGraph(uint32_t index) {
     // Remove data set
     m_dataSets.erase(m_dataSets.begin() + index);
 
@@ -434,7 +434,7 @@ void Graph::sendGraphChoices() {
     /* Send updated status on streams to which to connect based on the bit
      * array
      */
-    for (unsigned int i = 0; i < m_graphNames.size(); i++) {
+    for (uint32_t i = 0; i < m_graphNames.size(); i++) {
         // If the graph data is requested
         if (m_curSelect & (1 << i)) {
             m_hostPacket.ID = k_hostConnectPacket | i;
@@ -457,7 +457,7 @@ void Graph::sendGraphChoices() {
          * always 1. This algorithm gives 25 possible values, one being black.
          */
         if (makeGraphs) {
-            constexpr unsigned int parts = 12;
+            constexpr uint32_t parts = 12;
             createGraph(m_graphNames[i],
                         HSVtoRGB(360 / parts * i % 360, 1,
                                  1 - 0.5 * std::floor(i / parts)));

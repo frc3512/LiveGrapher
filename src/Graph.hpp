@@ -48,7 +48,7 @@ public:
     bool isConnected() const;
 
     // Add data point to graph at given index (push back)
-    void addData(unsigned int index, const std::pair<float, float>&& point);
+    void addData(uint32_t index, const std::pair<float, float>&& point);
 
     // Removes all previous data from all graphs
     void clearAllData();
@@ -57,7 +57,7 @@ public:
     void createGraph(const std::string& name, QColor color);
 
     // Remove graph at the given index
-    void removeGraph(unsigned int index);
+    void removeGraph(uint32_t index);
 
 public slots:
     // Saves a screenshot of the current graph window in PNG format

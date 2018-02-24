@@ -27,6 +27,6 @@ private slots:
 private:
     Graph& m_graph;
     QPushButton m_okButton{QObject::tr("&Ok")};
-    QScrollArea m_scrollArea;
+    QScrollArea m_scrollArea{this};
     QSignalMapper m_signalMapper{this};
 };

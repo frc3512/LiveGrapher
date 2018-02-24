@@ -48,8 +48,20 @@ int main() {
 
         if (liveGrapher.HasIntervalPassed()) {
             liveGrapher.GraphData(sSetpoint, "SCurve SP");
-            liveGrapher.GraphData(4.5, "Test");
+            liveGrapher.GraphData(0.0, "Test");
             liveGrapher.GraphData(tSetpoint, "TCurve SP");
+
+            liveGrapher.GraphData(-sSetpoint, "SCurve SP 2");
+            liveGrapher.GraphData(2.0, "Test 2");
+            liveGrapher.GraphData(-tSetpoint, "TCurve SP 2");
+
+            liveGrapher.GraphData(20.0 + sSetpoint, "SCurve SP 3");
+            liveGrapher.GraphData(4.0, "Test 3");
+            liveGrapher.GraphData(20.0 + tSetpoint, "TCurve SP 3");
+
+            liveGrapher.GraphData(20.0 - sSetpoint, "SCurve SP 4");
+            liveGrapher.GraphData(5.0, "Test 4");
+            liveGrapher.GraphData(20.0 - tSetpoint, "TCurve SP 4");
 
             liveGrapher.ResetInterval();
         }
