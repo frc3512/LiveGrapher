@@ -12,6 +12,8 @@ If one is building on Windows, we recommend using the [MSYS2 compiler](https://m
 
 To build the project, first run `qmake dir` within a terminal from the desired build directory, where "dir" is the relative location of the LiveGrapher.pro file. This will generate three makefiles. If a debug build is desired, run `make -f Makefile.Debug`. The default behavior when simply running `make` is to perform a release build.
 
+To cross-compile from Linux to Windows, install the MinGW-w64 toolchain (`mingw-w64-gcc` and a MinGW-w64 build of Qt 5 (`mingw-w64-qt5-base`), then run `publish-win32.sh` to build LiveGrapher and create a .zip of the application binary and necessary files.
+
 ## Configuration
 
 The IPSettings.txt in the root directory of the project should be kept with the executable since it looks for it in its current directory.
