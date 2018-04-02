@@ -17,7 +17,7 @@ SOURCES += \
     src/SelectDialog.cpp
 
 HEADERS += \
-    common/Protocol.hpp \
+    src/Protocol.hpp \
     src/Graph.hpp \
     src/MainWindow.hpp \
     src/qcustomplot.h \
