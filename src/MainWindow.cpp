@@ -20,10 +20,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     plot = new QCustomPlot(centralWidget);
     plot->setInteraction(QCP::iRangeDrag, true);
     plot->setInteraction(QCP::iRangeZoom, true);
-    plot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
-    plot->xAxis->setDateTimeFormat("mm:ss");
-    plot->xAxis->setAutoTickStep(false);
-    plot->xAxis->setTickStep(1);
+    QSharedPointer<QCPAxisTickerTime> ticker(new QCPAxisTickerTime);
+    ticker->setTimeFormat("%m:%s");
+    plot->xAxis->setTicker(ticker);
     plot->xAxis->setLabel("Time (s)");
     plot->yAxis->setLabel("Data");
     plot->axisRect()->setupFullAxesBox();

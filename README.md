@@ -110,4 +110,3 @@ One response of this packet type is sent for each available data set after sendi
   * Write protocol and CSV export tests?
 * Protocol change from "uint64_t x" to "float x" to support 2D plots
   * Overload with just "float y" will still exist for time-based plots
-* Upgrade to qcustomplot 2?
