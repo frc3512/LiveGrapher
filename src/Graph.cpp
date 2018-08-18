@@ -72,6 +72,9 @@ Graph::Graph(MainWindow* parentWindow)
 }
 
 void Graph::Reconnect() {
+    // Clear the old list of graph names because a new set will be received
+    m_graphNames.clear();
+
     // Reset list of dataset recv statuses
     m_curSelect = 0;
 
@@ -149,6 +152,14 @@ void Graph::RemoveGraph(uint32_t index) {
 
     m_window.m_ui.plot->removeGraph(index);
     m_window.m_ui.plot->legend->removeItem(index);
+}
+
+void Graph::RemoveAllGraphs() {
+    // Clear all graphs and the local dataset storage it represents
+    m_window.m_ui.plot->clearGraphs();
+    m_datasets.clear();
+
+    m_startTime = 0;
 }
 
 bool Graph::ScreenshotGraph() {
@@ -384,6 +395,16 @@ void Graph::HandleSocketData() {
 }
 
 void Graph::SendGraphChoices() {
+    // If graph names changed, remake graphs. This also works on new connections
+    // because the list of old graph names will be empty.
+    if (m_oldGraphNames != m_graphNames) {
+        // If old and new dataset names don't all match, remove all graphs and
+        // create new ones because the old data and plots are no longer valid
+        RemoveAllGraphs();
+
+        m_oldGraphNames = m_graphNames;
+    }
+
     // If true, graphs haven't been created yet
     bool createGraphs = m_window.m_ui.plot->graphCount() == 0;
 

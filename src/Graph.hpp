@@ -84,6 +84,11 @@ public:
      */
     void RemoveGraph(uint32_t index);
 
+    /**
+     * Removes all graphs.
+     */
+    void RemoveAllGraphs();
+
 public slots:
     /**
      * Saves a screenshot of the current graph window in PNG format.
@@ -113,6 +118,7 @@ private:
 
     // Contains names for all graphs available on host
     std::map<uint8_t, std::string> m_graphNames;
+    std::map<uint8_t, std::string> m_oldGraphNames;
 
     // Each bit holds receive state of data set (1 = recv, 0 = not recv)
     uint64_t m_curSelect = 0;
