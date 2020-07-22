@@ -34,19 +34,19 @@ Port from which graph data is received
 
 This entry is the length of time over which to maintain X axis history in seconds.
 
-# GraphHost Protocol Documentation
+# LiveGrapher protocol documentation
 
-GraphHost provides a method for sending data samples to a graphing tool on a network-connected workstation for real-time display. This can be used to perform online PID controller tuning of motors.
+LiveGrapher provides a method for sending data samples to a graphing tool on a network-connected workstation for real-time display. This can be used to perform online PID controller tuning of motors.
 
-## Communication Protocol
+## Communication protocol
 
 Clients should connect to the TCP port specified in the constructor. Various requests can then be sent to the server. These requests may trigger the server to respond with zero or more responses. All communication with the server is asynchronous. A request may be sent at any time, even before a response has been received regarding a previous request. Therefore, the order in which responses are sent is unspecified.
 
 Packets are classified as either client or host packets, representing by whom they are received. The first byte is split into two fields of two and six bits respectively. The first field contains an ID for the type of packet sent, and the second contains the ID of the graph whose information was sent, if applicable. The packet payload descriptions are written in terms of C standard integer typedefs and C bitfields.
 
-### Host Packets
+### Host packets
 
-#### Start Sending Data
+#### Start sending data
 
 This request notifies the server that it may begin sending data points associated with the specified data set.
 
@@ -55,7 +55,7 @@ This request notifies the server that it may begin sending data points associate
 * uint8_t graphID : 6
   * Contains ID of graph
 
-#### Stop Sending Data
+#### Stop sending data
 
 This request notifies the server to stop sending data from the specified data set.
 
@@ -64,7 +64,7 @@ This request notifies the server to stop sending data from the specified data se
 * uint8_t graphID : 6
   * Contains ID of graph
 
-#### List Available Data Sets
+#### List available data sets
 
 This request triggers the host to respond with a list of names of availabe data sets from which data can be requested.
 
@@ -74,7 +74,7 @@ This request triggers the host to respond with a list of names of availabe data 
   * Unused
   * Should be set to 0, but not required
 
-### Client Packets
+### Client packets
 
 #### Data
 
