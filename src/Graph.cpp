@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2020 FRC Team 3512. All Rights Reserved.
 
 #include "Graph.hpp"
 
@@ -104,7 +104,8 @@ bool Graph::recvData(void* data, size_t length) {
 Graph::Graph(MainWindow* parentWindow)
     : QObject(parentWindow), m_window(*parentWindow) {
     m_dataSets.reserve(64);
-    m_remoteIP = QString::fromUtf8(m_settings.getString("robotIP").c_str());
+    m_remoteIP = QHostAddress(
+        QString::fromUtf8(m_settings.getString("robotIP").c_str()));
     m_dataPort = m_settings.getInt("robotGraphPort");
 
     connect(&m_dataSocket, SIGNAL(readyRead()), this, SLOT(handleSocketData()));
