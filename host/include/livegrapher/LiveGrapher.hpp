@@ -21,19 +21,16 @@
  *
  * The LiveGrapher interface is started upon object initialization.
  *
- * Call GraphData() to send data over the network to a LiveGrapher client.
+ * Call AddData() to send data over the network to a LiveGrapher client.
  *
  * The time value in each data pair is handled internally.
  *
- * Use the function HasIntervalPassed() to limit the frequency of data sending
- * in looping situations.
- *
  * Example:
- *     LiveGrapher pidGraph(3513);
+ *     LiveGrapher grapher{3513};
  *
  *     void TeleopPeriodic() override {
- *         pidGraph.GraphData(frisbeeShooter.getRPM(), "PID0");
- *         pidGraph.GraphData(frisbeeShooter.getTargetRPM(), "PID1");
+ *         grapher.GraphData("PID0", frisbeeShooter.getRPM());
+ *         grapher.GraphData("PID1", frisbeeShooter.getTargetRPM());
  *     }
  */
 class LiveGrapher {
