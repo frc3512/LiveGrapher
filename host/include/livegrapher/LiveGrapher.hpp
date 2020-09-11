@@ -32,15 +32,10 @@
  *
  * Example:
  *     LiveGrapher pidGraph(3513);
- *     pidGraph.SetSendInterval(5ms);
  *
- *     while (IsOperatorControl() && IsEnabled()) {
- *         if (pidGraph.HasIntervalPassed()) {
- *             pidGraph.GraphData(frisbeeShooter.getRPM(), "PID0");
- *             pidGraph.GraphData(frisbeeShooter.getTargetRPM(), "PID1");
- *
- *             pidGraph.ResetInterval();
- *         }
+ *     void TeleopPeriodic() override {
+ *         pidGraph.GraphData(frisbeeShooter.getRPM(), "PID0");
+ *         pidGraph.GraphData(frisbeeShooter.getTargetRPM(), "PID1");
  *     }
  */
 class LiveGrapher {
@@ -48,41 +43,15 @@ public:
     explicit LiveGrapher(int port);
     ~LiveGrapher();
 
-    /* Send data (y value) for a given dataset to remote client. The current
-     * time is sent as the x value. Returns true if data was sent successfully
-     * and false upon failure or host isn't running.
+    /**
+     * Send data (y value) for a given dataset to remote client.
+     *
+     * The current time is sent as the x value. Returns true if data was sent
+     * successfully and false upon failure or host isn't running.
      */
     bool GraphData(float value, std::string dataset);
 
-    /* Sets time interval after which data is sent to graph (milliseconds per
-     * sample)
-     */
-    template <typename Rep, typename Period>
-    void SetSendInterval(const std::chrono::duration<Rep, Period>& time) {
-        using std::chrono::duration_cast;
-        using std::chrono::milliseconds;
-        m_sendInterval = duration_cast<milliseconds>(time).count();
-    }
-
-    /* Returns true if the time between the last data transmission is greater
-     * than the sending interval time
-     */
-    bool HasIntervalPassed();
-
-    /* Resets time interval passed since last data transmission (makes
-     * hasIntervalPassed() return false)
-     */
-    void ResetInterval();
-
 private:
-    // Last time data was graphed
-    uint64_t m_lastTime = 0;
-
-    /* Time interval after which data is sent to graph (in milliseconds per
-     * sample)
-     */
-    uint32_t m_sendInterval = 5;
-
     // Used as a temp variable in graphData()
     uint64_t m_currentTime;
 
@@ -104,8 +73,8 @@ private:
     // Temporary buffer used in ReadPackets()
     std::string m_buf;
 
-    static inline uint8_t packetID(uint8_t id);
-    static inline uint8_t graphID(uint8_t id);
+    static uint8_t packetID(uint8_t id);
+    static uint8_t graphID(uint8_t id);
 
     void socket_threadmain();
 

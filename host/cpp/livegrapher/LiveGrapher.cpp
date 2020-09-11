@@ -118,16 +118,6 @@ bool LiveGrapher::GraphData(float value, std::string dataset) {
     return true;
 }
 
-bool LiveGrapher::HasIntervalPassed() {
-    m_currentTime =
-        duration_cast<milliseconds>(system_clock::now().time_since_epoch())
-            .count();
-
-    return m_currentTime - m_lastTime > m_sendInterval;
-}
-
-void LiveGrapher::ResetInterval() { m_lastTime = m_currentTime; }
-
 uint8_t LiveGrapher::packetID(uint8_t id) {
     // Masks two high-order bits
     return id & 0xC0;

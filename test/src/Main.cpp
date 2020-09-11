@@ -15,7 +15,6 @@ using namespace std::chrono_literals;
 
 int main() {
     LiveGrapher liveGrapher(3513);
-    liveGrapher.SetSendInterval(10ms);
 
     // Ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
@@ -27,10 +26,13 @@ int main() {
     tProfile.setGoal(0, goal);
 
     using clock = std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
 
-    uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-                             clock::now().time_since_epoch())
-                             .count();
+    auto startTime =
+        duration_cast<milliseconds>(clock::now().time_since_epoch());
+    auto lastTime = startTime;
+    auto currentTime = startTime;
     float curTime = 0;
     float sSetpoint = 0.f;
     float tSetpoint = 0.f;
@@ -38,15 +40,13 @@ int main() {
     sProfile.resetProfile();
     tProfile.resetProfile();
     while (1) {
-        curTime = (std::chrono::duration_cast<std::chrono::milliseconds>(
-                       clock::now().time_since_epoch())
-                       .count() -
-                   startTime) /
-                  1000.f;
+        currentTime =
+            duration_cast<milliseconds>(clock::now().time_since_epoch());
+        curTime = (currentTime.count() - startTime.count()) / 1000.f;
         sSetpoint = sProfile.updateSetpoint(curTime);
         tSetpoint = tProfile.updateSetpoint(curTime);
 
-        if (liveGrapher.HasIntervalPassed()) {
+        if (currentTime - lastTime > 10ms) {
             liveGrapher.GraphData(sSetpoint, "SCurve SP");
             liveGrapher.GraphData(0.0, "Test");
             liveGrapher.GraphData(tSetpoint, "TCurve SP");
@@ -63,13 +63,12 @@ int main() {
             liveGrapher.GraphData(5.0, "Test 4");
             liveGrapher.GraphData(20.0 - tSetpoint, "TCurve SP 4");
 
-            liveGrapher.ResetInterval();
+            lastTime = currentTime;
         }
 
         if (tProfile.atGoal()) {
-            startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            clock::now().time_since_epoch())
-                            .count();
+            startTime =
+                duration_cast<milliseconds>(clock::now().time_since_epoch());
 
             if (sProfile.getGoal() == goal) {
                 sProfile.setGoal(curTime, 0, sProfile.getGoal());
