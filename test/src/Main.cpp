@@ -47,21 +47,21 @@ int main() {
         tSetpoint = tProfile.updateSetpoint(curTime);
 
         if (currentTime - lastTime > 10ms) {
-            liveGrapher.GraphData(sSetpoint, "SCurve SP");
-            liveGrapher.GraphData(0.0, "Test");
-            liveGrapher.GraphData(tSetpoint, "TCurve SP");
+            liveGrapher.AddData("SCurve SP", sSetpoint);
+            liveGrapher.AddData("Test", 0.0);
+            liveGrapher.AddData("TCurve SP", tSetpoint);
 
-            liveGrapher.GraphData(-sSetpoint, "SCurve SP 2");
-            liveGrapher.GraphData(2.0, "Test 2");
-            liveGrapher.GraphData(-tSetpoint, "TCurve SP 2");
+            liveGrapher.AddData("SCurve SP 2", -sSetpoint);
+            liveGrapher.AddData("Test 2", 2.0);
+            liveGrapher.AddData("TCurve SP 2", -tSetpoint);
 
-            liveGrapher.GraphData(20.0 + sSetpoint, "SCurve SP 3");
-            liveGrapher.GraphData(4.0, "Test 3");
-            liveGrapher.GraphData(20.0 + tSetpoint, "TCurve SP 3");
+            liveGrapher.AddData("SCurve SP 3", 20.0 + sSetpoint);
+            liveGrapher.AddData("Test 3", 4.0);
+            liveGrapher.AddData("TCurve SP 3", 20.0 + tSetpoint);
 
-            liveGrapher.GraphData(20.0 - sSetpoint, "SCurve SP 4");
-            liveGrapher.GraphData(5.0, "Test 4");
-            liveGrapher.GraphData(20.0 - tSetpoint, "TCurve SP 4");
+            liveGrapher.AddData("SCurve SP 4", 20.0 - sSetpoint);
+            liveGrapher.AddData("Test 4", 5.0);
+            liveGrapher.AddData("TCurve SP 4", 20.0 - tSetpoint);
 
             lastTime = currentTime;
         }

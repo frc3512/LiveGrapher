@@ -46,10 +46,10 @@ public:
      *
      * The current time is sent as the x value.
      *
-     * @param value   The y value.
      * @param dataset The name of the dataset to which the value belongs.
+     * @param value   The y value.
      */
-    void GraphData(float value, const std::string& dataset);
+    void AddData(const std::string& dataset, float value);
 
 private:
     std::thread m_thread;

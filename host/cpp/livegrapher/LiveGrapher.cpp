@@ -67,7 +67,7 @@ LiveGrapher::~LiveGrapher() {
     close(m_ipcfd_w);
 }
 
-void LiveGrapher::GraphData(float value, const std::string& dataset) {
+void LiveGrapher::AddData(const std::string& dataset, float value) {
     // This will only work if ints are the same size as floats
     static_assert(sizeof(float) == sizeof(uint32_t),
                   "float isn't 32 bits long");
