@@ -3,6 +3,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <unistd.h>
 
 #include <queue>
 #include <string>
@@ -25,7 +26,13 @@ public:
     void writePackets();
 
     template <class T>
-    void queueWrite(T& buf);
+    void queueWrite(T& buf) {
+        m_writequeue.emplace(reinterpret_cast<const char*>(&buf), sizeof(T));
+
+        // Select on write
+        selectflags |= SocketConnection::Write;
+        write(m_ipcfd_w, "r", 1);
+    }
 
     void queueWrite(const char* buf, size_t length);
 
@@ -36,14 +43,6 @@ public:
 private:
     int m_ipcfd_w;
 
-    // The buffer that needs to be written into the socket
-    std::string m_writebuf;
-
-    // How much has been written so far
-    size_t m_writebufoffset = 0;
-
     bool m_writedone = true;
     std::queue<std::string> m_writequeue;
 };
-
-#include "livegrapher/SocketConnection.inc"

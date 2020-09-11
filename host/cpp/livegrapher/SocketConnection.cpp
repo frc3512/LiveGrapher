@@ -4,15 +4,12 @@
 
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 #ifdef __VXWORKS__
 #include <sockLib.h>
 #endif
 
-#include <algorithm>
-#include <cstring>
-#include <utility>
+#include <string_view>
 
 SocketConnection::SocketConnection(int nfd, int ipcWriteSock) {
     fd = nfd;
@@ -34,26 +31,29 @@ int SocketConnection::recvData(char* buf, size_t length) {
 
 // Write queued data to a socket when the socket becomes ready
 void SocketConnection::writePackets() {
+    std::string_view writebuf;
+    size_t writebufoffset = 0;
+
     /* While the current buffer isn't done sending or there are more buffers to
      * send
      */
     while (!m_writedone || !m_writequeue.empty()) {
         // Get another buffer to send
         if (m_writedone) {
-            m_writebuf = std::move(m_writequeue.front());
-            m_writebufoffset = 0;
+            writebuf = m_writequeue.front();
+            writebufoffset = 0;
             m_writedone = false;
             m_writequeue.pop();
         }
 
         // These descriptors are ready for writing
-        m_writebufoffset +=
-            send(fd, &m_writebuf[0], m_writebuf.length() - m_writebufoffset, 0);
+        writebufoffset +=
+            send(fd, &writebuf[0], writebuf.length() - writebufoffset, 0);
 
         // Have we finished writing the buffer?
-        if (m_writebufoffset == m_writebuf.length()) {
+        if (writebufoffset == writebuf.length()) {
             // Reset the write buffer
-            m_writebufoffset = 0;
+            writebufoffset = 0;
             m_writedone = true;
         } else {
             // We haven't finished writing, keep selecting

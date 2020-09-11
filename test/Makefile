@@ -22,7 +22,7 @@ CC := gcc
 CFLAGS := -O3 -Wall -s -std=c11 -flto
 
 CXX := g++
-CXXFLAGS := -O3 -Wall -s -std=c++1y -flto
+CXXFLAGS := -O3 -Wall -s -std=c++17 -flto
 
 # Specify defines with -D directives here
 DEFINES :=

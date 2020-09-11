@@ -103,7 +103,7 @@ bool LiveGrapher::GraphData(float value, std::string dataset) {
     ytmp = htonl(ytmp);
     std::memcpy(&packet.y, &ytmp, sizeof(ytmp));
 
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::scoped_lock lock(m_mutex);
 
     // Send the point to connected clients
     for (auto& conn : m_connList) {
@@ -166,7 +166,7 @@ void LiveGrapher::socket_threadmain() {
         maxfd = listenfd;
 
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
+            std::scoped_lock lock(m_mutex);
 
             // Add the file descriptors to the list
             for (auto& conn : m_connList) {
@@ -195,7 +195,7 @@ void LiveGrapher::socket_threadmain() {
         select(maxfd + 1, &readfds, &writefds, &errorfds, nullptr);
 
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
+            std::scoped_lock lock(m_mutex);
 
             auto conn = m_connList.begin();
             while (conn != m_connList.end()) {
@@ -231,7 +231,7 @@ void LiveGrapher::socket_threadmain() {
                 setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,
                            reinterpret_cast<char*>(&yes), sizeof(yes));
 
-                std::lock_guard<std::mutex> lock(m_mutex);
+                std::scoped_lock lock(m_mutex);
                 // Add it to the list, this makes it a bit non-thread-safe
                 m_connList.emplace_back(
                     std::make_unique<SocketConnection>(fd, m_ipcfd_w));

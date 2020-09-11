@@ -58,7 +58,11 @@ public:
      * sample)
      */
     template <typename Rep, typename Period>
-    void SetSendInterval(const std::chrono::duration<Rep, Period>& time);
+    void SetSendInterval(const std::chrono::duration<Rep, Period>& time) {
+        using std::chrono::duration_cast;
+        using std::chrono::milliseconds;
+        m_sendInterval = duration_cast<milliseconds>(time).count();
+    }
 
     /* Returns true if the time between the last data transmission is greater
      * than the sending interval time
@@ -110,5 +114,3 @@ private:
 
     int ReadPackets(SocketConnection* conn);
 };
-
-#include "livegrapher/LiveGrapher.inc"
