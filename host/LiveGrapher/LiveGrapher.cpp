@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2020 FRC Team 3512. All Rights Reserved.
 
 #include "LiveGrapher/LiveGrapher.hpp"
 
@@ -262,7 +262,7 @@ int LiveGrapher::socket_listen(int port, uint32_t s_addr) {
         // Create a TCP socket
         sd = socket(AF_INET, SOCK_STREAM, 0);
         if (sd == -1) {
-            throw - 1;
+            throw -1;
         }
 
 // Allow rebinding to the socket later if the connection is interrupted
@@ -282,12 +282,12 @@ int LiveGrapher::socket_listen(int port, uint32_t s_addr) {
         // Bind the socket to the listener sockaddr_in
         if (bind(sd, reinterpret_cast<sockaddr*>(&serv_addr),
                  sizeof(sockaddr_in)) != 0) {
-            throw - 1;
+            throw -1;
         }
 
         // Listen on the socket for incoming connections
         if (listen(sd, 5) != 0) {
-            throw - 1;
+            throw -1;
         }
     } catch (int e) {
         std::perror("");
@@ -322,24 +322,24 @@ int LiveGrapher::socket_accept(int listenfd) {
 
         // Make sure that the file descriptor is valid
         if (new_fd == -1) {
-            throw - 1;
+            throw -1;
         }
 
 #ifdef __VXWORKS__
         // Set the socket non-blocking
         int on = 1;
         if (ioctl(new_fd, static_cast<int>(FIONBIO), on) == -1) {
-            throw - 1;
+            throw -1;
         }
 #else
         // Set the socket non-blocking
         int flags = fcntl(new_fd, F_GETFL, 0);
         if (flags == -1) {
-            throw - 1;
+            throw -1;
         }
 
         if (fcntl(new_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-            throw - 1;
+            throw -1;
         }
 #endif
     } catch (int e) {
