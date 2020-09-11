@@ -30,7 +30,7 @@ DEFINES :=
 LD := g++
 
 # Specify Linux include paths with -I directives here
-IFLAGS := -Ihost
+IFLAGS := -Ihost/include
 
 # Specify Linux libs with -l directives here
 LDFLAGS := -pthread

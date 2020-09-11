@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2020 FRC Team 3512. All Rights Reserved.
 
 #pragma once
 
@@ -13,8 +13,8 @@
 #include <thread>
 #include <vector>
 
-#include "Protocol.hpp"
-#include "SocketConnection.hpp"
+#include "livegrapher/Protocol.hpp"
+#include "livegrapher/SocketConnection.hpp"
 
 /**
  * The host for the LiveGrapher real-time graphing application.
@@ -111,4 +111,4 @@ private:
     int ReadPackets(SocketConnection* conn);
 };
 
-#include "LiveGrapher.inl"
+#include "livegrapher/LiveGrapher.inc"

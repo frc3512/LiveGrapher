@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2020 FRC Team 3512. All Rights Reserved.
 
 #pragma once
 
@@ -46,4 +46,4 @@ private:
     std::queue<std::string> m_writequeue;
 };
 
-#include "SocketConnection.inl"
+#include "livegrapher/SocketConnection.inc"

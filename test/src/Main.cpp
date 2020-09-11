@@ -1,4 +1,4 @@
-// Copyright (c) 2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2018-2020 FRC Team 3512. All Rights Reserved.
 
 #include <signal.h>
 #include <stdint.h>
@@ -7,9 +7,9 @@
 #include <chrono>
 #include <iostream>
 
-#include "LiveGrapher/LiveGrapher.hpp"
 #include "SCurveProfile.hpp"
 #include "TrapezoidProfile.hpp"
+#include "livegrapher/LiveGrapher.hpp"
 
 using namespace std::chrono_literals;
 
