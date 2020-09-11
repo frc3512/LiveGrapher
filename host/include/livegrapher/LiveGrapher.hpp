@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 
-#include <atomic>
 #include <chrono>
 #include <map>
 #include <memory>
@@ -52,16 +51,11 @@ public:
     bool GraphData(float value, std::string dataset);
 
 private:
-    // Used as a temp variable in graphData()
-    uint64_t m_currentTime;
-
-    // Mark the thread as not running, this will be set to true by the thread
-    std::atomic<bool> m_running{false};
     std::thread m_thread;
     std::mutex m_mutex;
+    int m_listenfd;
     int m_ipcfd_r;
     int m_ipcfd_w;
-    int m_port;
 
     /* Sorted by graph name instead of ID because the user passes in a string.
      * (They don't know the ID.) This makes graph ID lookups take O(log n).

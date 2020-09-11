@@ -26,12 +26,11 @@ using std::chrono::milliseconds;
 using std::chrono::system_clock;
 
 LiveGrapher::LiveGrapher(int port) {
-    m_currentTime =
-        duration_cast<milliseconds>(system_clock::now().time_since_epoch())
-            .count();
-
-    // Store the port to listen on
-    m_port = port;
+    // Listen on a socket
+    m_listenfd = socket_listen(port, 0);
+    if (m_listenfd == -1) {
+        throw -1;
+    }
 
     // Create a pipe for IPC with the thread
     int pipefd[2];
@@ -41,11 +40,11 @@ LiveGrapher::LiveGrapher(int port) {
     pipefd[1] = open("/pipe/graphhost", O_WRONLY, 0644);
 
     if (pipefd[0] == -1 || pipefd[1] == -1) {
-        return;
+        throw -1;
     }
 #else
     if (pipe(pipefd) == -1) {
-        return;
+        throw -1;
     }
 #endif
 
@@ -69,15 +68,11 @@ LiveGrapher::~LiveGrapher() {
 }
 
 bool LiveGrapher::GraphData(float value, std::string dataset) {
-    if (!m_running) {
-        return false;
-    }
-
     // This will only work if ints are the same size as floats
     static_assert(sizeof(float) == sizeof(uint32_t),
                   "float isn't 32 bits long");
 
-    m_currentTime =
+    auto currentTime =
         duration_cast<milliseconds>(system_clock::now().time_since_epoch())
             .count();
 
@@ -93,7 +88,7 @@ bool LiveGrapher::GraphData(float value, std::string dataset) {
     // Change to network byte order
     // Swap bytes in x, and copy into the payload struct
     uint64_t xtmp;
-    std::memcpy(&xtmp, &m_currentTime, sizeof(xtmp));
+    std::memcpy(&xtmp, &currentTime, sizeof(xtmp));
     xtmp = be64toh(xtmp);
     std::memcpy(&packet.x, &xtmp, sizeof(xtmp));
 
@@ -129,22 +124,12 @@ uint8_t LiveGrapher::graphID(uint8_t id) {
 }
 
 void LiveGrapher::socket_threadmain() {
-    int listenfd;
     int maxfd;
     uint8_t ipccmd = 0;
 
     fd_set readfds;
     fd_set writefds;
     fd_set errorfds;
-
-    // Listen on a socket
-    listenfd = socket_listen(m_port, 0);
-    if (listenfd == -1) {
-        return;
-    }
-
-    // Set the running flag after we've finished initializing everything
-    m_running = true;
 
     while (ipccmd != 'x') {
         // Clear the fdsets
@@ -153,7 +138,7 @@ void LiveGrapher::socket_threadmain() {
         FD_ZERO(&errorfds);
 
         // Reset the maxfd
-        maxfd = listenfd;
+        maxfd = m_listenfd;
 
         {
             std::scoped_lock lock(m_mutex);
@@ -176,7 +161,7 @@ void LiveGrapher::socket_threadmain() {
         }
 
         // Select on the listener fd
-        FD_SET(listenfd, &readfds);
+        FD_SET(m_listenfd, &readfds);
 
         // ipcfd will receive data when the thread needs to exit
         FD_SET(m_ipcfd_r, &readfds);
@@ -211,9 +196,9 @@ void LiveGrapher::socket_threadmain() {
         }
 
         // Check for listener condition
-        if (FD_ISSET(listenfd, &readfds)) {
+        if (FD_ISSET(m_listenfd, &readfds)) {
             // Accept connections
-            int fd = socket_accept(listenfd);
+            int fd = socket_accept(m_listenfd);
 
             if (fd != -1) {
                 // Disable Nagle's algorithm
@@ -234,11 +219,8 @@ void LiveGrapher::socket_threadmain() {
         }
     }
 
-    // We're done, clear the running flag and clean up
-    m_running = false;
-
     // Close the listener file descriptor
-    close(listenfd);
+    close(m_listenfd);
 }
 
 /* Listens on a specified port (listenport), and returns the file descriptor
