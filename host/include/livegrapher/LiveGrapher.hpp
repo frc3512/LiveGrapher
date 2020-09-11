@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 
-#include <chrono>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -45,10 +44,12 @@ public:
     /**
      * Send data (y value) for a given dataset to remote client.
      *
-     * The current time is sent as the x value. Returns true if data was sent
-     * successfully and false upon failure or host isn't running.
+     * The current time is sent as the x value.
+     *
+     * @param value   The y value.
+     * @param dataset The name of the dataset to which the value belongs.
      */
-    bool GraphData(float value, std::string dataset);
+    void GraphData(float value, const std::string& dataset);
 
 private:
     std::thread m_thread;

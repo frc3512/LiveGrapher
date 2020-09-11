@@ -67,7 +67,7 @@ LiveGrapher::~LiveGrapher() {
     close(m_ipcfd_w);
 }
 
-bool LiveGrapher::GraphData(float value, std::string dataset) {
+void LiveGrapher::GraphData(float value, const std::string& dataset) {
     // This will only work if ints are the same size as floats
     static_assert(sizeof(float) == sizeof(uint32_t),
                   "float isn't 32 bits long");
@@ -109,8 +109,6 @@ bool LiveGrapher::GraphData(float value, std::string dataset) {
             }
         }
     }
-
-    return true;
 }
 
 uint8_t LiveGrapher::packetID(uint8_t id) {
