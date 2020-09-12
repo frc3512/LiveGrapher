@@ -2,59 +2,50 @@
 
 #include "livegrapher/LiveGrapher.hpp"
 
-#include <endian.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <signal.h>
+#include <arpa/inet.h>
 
 #include <algorithm>
 #include <cstring>
-#include <system_error>
 
-using std::chrono::duration_cast;
-using std::chrono::milliseconds;
-using std::chrono::system_clock;
+#include "livegrapher/Protocol.hpp"
 
-LiveGrapher::LiveGrapher(int port) {
-    // Listen on a socket
-    m_listenFd = Listen(port, 0);
-    if (m_listenFd == -1) {
-        throw std::system_error(errno, std::system_category(), "socket");
-    }
+LiveGrapher::LiveGrapher(uint16_t port) : m_listener{port} {
+    m_selector.Add(m_listener, SocketSelector::kRead);
 
-    // Create a pipe for IPC with the thread
-    int pipeFd[2];
-    if (pipe(pipeFd) == -1) {
-        throw std::system_error(errno, std::system_category(), "socket");
-    }
-
-    m_ipcFdReader = pipeFd[0];
-    m_ipcFdWriter = pipeFd[1];
-
+    m_isRunning = true;
     m_thread = std::thread([this] { ThreadMain(); });
 }
 
 LiveGrapher::~LiveGrapher() {
-    // Tell the other thread to stop
-    write(m_ipcFdWriter, "x", 1);
-
-    // Join to the other thread
+    m_isRunning = false;
+    m_selector.Cancel();
     m_thread.join();
-
-    // Close file descriptors and clean up
-    close(m_ipcFdReader);
-    close(m_ipcFdWriter);
 }
 
 void LiveGrapher::AddData(const std::string& dataset, float value) {
+    // HACK: The dataset argument uses const std::string& instead of
+    // std::string_view because std::map doesn't have a find(std::string_view)
+    // overload.
+
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    using std::chrono::steady_clock;
+
+    auto currentTime =
+        duration_cast<milliseconds>(steady_clock::now().time_since_epoch());
+
+    AddData(dataset, currentTime, value);
+}
+
+void LiveGrapher::AddData(const std::string& dataset,
+                          std::chrono::milliseconds time, float value) {
+    // HACK: The dataset argument uses const std::string& instead of
+    // std::string_view because std::map doesn't have a find(std::string_view)
+    // overload.
+
     // This will only work if ints are the same size as floats
     static_assert(sizeof(float) == sizeof(uint32_t),
                   "float isn't 32 bits long");
-
-    auto currentTime =
-        duration_cast<milliseconds>(system_clock::now().time_since_epoch())
-            .count();
 
     auto i = m_graphList.find(dataset);
 
@@ -67,10 +58,9 @@ void LiveGrapher::AddData(const std::string& dataset, float value) {
 
     // Change to network byte order
     // Swap bytes in x, and copy into the payload struct
-    uint64_t xtmp;
-    std::memcpy(&xtmp, &currentTime, sizeof(xtmp));
-    xtmp = be64toh(xtmp);
-    std::memcpy(&packet.x, &xtmp, sizeof(xtmp));
+    uint64_t timeMs = time.count();
+    timeMs = htobe64(timeMs);
+    std::memcpy(&packet.x, &timeMs, sizeof(timeMs));
 
     // Swap bytes in y, and copy into the payload struct
     uint32_t ytmp;
@@ -78,226 +68,112 @@ void LiveGrapher::AddData(const std::string& dataset, float value) {
     ytmp = htonl(ytmp);
     std::memcpy(&packet.y, &ytmp, sizeof(ytmp));
 
-    std::scoped_lock lock(m_mutex);
+    bool restartSelect = false;
 
-    // Send the point to connected clients
-    for (auto& conn : m_connList) {
-        for (const auto& datasetID : conn->dataSets) {
-            if (datasetID == i->second) {
-                // Send the value off
-                conn->queueWrite(packet);
+    {
+        std::scoped_lock lock(m_connListMutex);
+
+        // Send the point to connected clients
+        for (auto& conn : m_connList) {
+            for (const auto& datasetID : conn.datasets) {
+                if (datasetID == i->second) {
+                    conn.AddData(
+                        {reinterpret_cast<char*>(&packet), sizeof(packet)});
+                    restartSelect = true;
+                }
             }
         }
+    }
+
+    if (restartSelect) {
+        // Restart select() with new data queued for write so it gets sent out
+        m_selector.Cancel();
     }
 }
 
 void LiveGrapher::ThreadMain() {
-    int maxfd;
-    uint8_t ipccmd = 0;
-
-    fd_set readfds;
-    fd_set writefds;
-    fd_set errorfds;
-
-    while (ipccmd != 'x') {
-        // Clear the fdsets
-        FD_ZERO(&readfds);
-        FD_ZERO(&writefds);
-        FD_ZERO(&errorfds);
-
-        // Reset the maxfd
-        maxfd = std::max(m_listenFd, m_ipcFdReader);
-
+    while (m_isRunning) {
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock(m_connListMutex);
 
-            // Add the file descriptors to the list
-            for (auto& conn : m_connList) {
-                if (maxfd < conn->fd) {
-                    maxfd = conn->fd;
-                }
-                if (conn->selectFlags & SocketConnection::Select::Read) {
-                    FD_SET(conn->fd, &readfds);
-                }
-                if (conn->selectFlags & SocketConnection::Select::Write) {
-                    FD_SET(conn->fd, &writefds);
-                }
-                if (conn->selectFlags & SocketConnection::Select::Error) {
-                    FD_SET(conn->fd, &errorfds);
+            // Mark select on write for sockets with data queued
+            for (const auto& conn : m_connList) {
+                if (conn.HasDataToWrite()) {
+                    m_selector.Add(conn.socket, SocketSelector::kWrite);
                 }
             }
         }
 
-        // Select on the listener fd
-        FD_SET(m_listenFd, &readfds);
-
-        // ipcfd will receive data when the thread needs to exit
-        FD_SET(m_ipcFdReader, &readfds);
-
-        // Select on the file descriptors
-        select(maxfd + 1, &readfds, &writefds, &errorfds, nullptr);
+        if (!m_selector.Select()) {
+            continue;
+        }
 
         {
-            std::scoped_lock lock(m_mutex);
+            std::scoped_lock lock(m_connListMutex);
 
             auto conn = m_connList.begin();
             while (conn != m_connList.end()) {
-                if (FD_ISSET((*conn)->fd, &readfds)) {
-                    // Handle reading
-                    if (ReadPackets(conn->get()) == -1) {
+                if (m_selector.IsReadReady(conn->socket)) {
+                    // If the read failed, remove the socket from the selector
+                    // and close the connection
+                    if (ReadPackets(*conn) == -1) {
+                        m_selector.Remove(
+                            conn->socket,
+                            SocketSelector::kRead | SocketSelector::kWrite);
                         conn = m_connList.erase(conn);
                         continue;
                     }
                 }
-                if (FD_ISSET((*conn)->fd, &writefds)) {
-                    // Handle writing
-                    (*conn)->writePackets();
-                }
-                if (FD_ISSET((*conn)->fd, &errorfds)) {
-                    // Handle errors
-                    conn = m_connList.erase(conn);
-                    continue;
+
+                if (m_selector.IsWriteReady(conn->socket)) {
+                    // If the write failed, remove the socket from the selector
+                    // and close the connection
+                    if (!conn->WriteToSocket()) {
+                        m_selector.Remove(
+                            conn->socket,
+                            SocketSelector::kRead | SocketSelector::kWrite);
+                        conn = m_connList.erase(conn);
+                        continue;
+                    }
+
+                    if (!conn->HasDataToWrite()) {
+                        m_selector.Remove(conn->socket, SocketSelector::kWrite);
+                    }
                 }
 
-                conn++;
+                ++conn;
             }
         }
 
-        // Check for listener condition
-        if (FD_ISSET(m_listenFd, &readfds)) {
-            // Accept connections
-            int fd = Accept(m_listenFd);
-
-            if (fd != -1) {
-                // Disable Nagle's algorithm
-                int yes = 1;
-                setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,
-                           reinterpret_cast<char*>(&yes), sizeof(yes));
-
-                std::scoped_lock lock(m_mutex);
-                // Add it to the list, this makes it a bit non-thread-safe
-                m_connList.emplace_back(
-                    std::make_unique<SocketConnection>(fd, m_ipcFdWriter));
-            }
-        }
-
-        // Handle IPC commands
-        if (FD_ISSET(m_ipcFdReader, &readfds)) {
-            read(m_ipcFdReader, reinterpret_cast<char*>(&ipccmd), 1);
+        if (m_selector.IsReadReady(m_listener)) {
+            std::scoped_lock lock(m_connListMutex);
+            auto socket = m_listener.Accept();
+            m_selector.Add(socket, SocketSelector::kRead);
+            m_connList.emplace_back(std::move(socket));
         }
     }
-
-    // Close the listener file descriptor
-    close(m_listenFd);
 }
 
-int LiveGrapher::Listen(int port, uint32_t sourceAddr) {
-    sockaddr_in servAddr;
-    int sd = -1;
+int LiveGrapher::ReadPackets(ClientConnection& conn) {
+    char id;
 
-    try {
-        // Create a TCP socket
-        sd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sd == -1) {
-            throw std::system_error(errno, std::system_category(), "socket");
-        }
-
-        // Allow rebinding to the socket later if the connection is interrupted
-        int optval = 1;
-        setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-
-        // Zero out the serv_addr struct
-        std::memset(&servAddr, 0, sizeof(sockaddr_in));
-
-        // Set up the listener sockaddr_in struct
-        servAddr.sin_family = AF_INET;
-        servAddr.sin_addr.s_addr = sourceAddr;
-        servAddr.sin_port = htons(port);
-
-        // Bind the socket to the listener sockaddr_in
-        if (bind(sd, reinterpret_cast<sockaddr*>(&servAddr),
-                 sizeof(sockaddr_in)) != 0) {
-            throw std::system_error(errno, std::system_category(), "socket");
-        }
-
-        // Listen on the socket for incoming connections
-        if (listen(sd, 5) != 0) {
-            throw std::system_error(errno, std::system_category(), "socket");
-        }
-    } catch (int e) {
-        std::perror("");
-        if (sd != -1) {
-            close(sd);
-        }
+    if (!conn.socket.Read(&id, 1)) {
         return -1;
     }
 
-    // Make sure we aren't killed by SIGPIPE
-    signal(SIGPIPE, SIG_IGN);
-
-    return sd;
-}
-
-int LiveGrapher::Accept(int listenFd) {
-    unsigned int clilen;
-    sockaddr_in cli_addr;
-
-    clilen = sizeof(cli_addr);
-
-    int newFd = -1;
-
-    try {
-        // Accept a new connection
-        newFd =
-            accept(listenFd, reinterpret_cast<sockaddr*>(&cli_addr), &clilen);
-
-        // Make sure that the file descriptor is valid
-        if (newFd == -1) {
-            throw std::system_error(errno, std::system_category(), "socket");
-        }
-
-        // Set the socket non-blocking
-        int flags = fcntl(newFd, F_GETFL, 0);
-        if (flags == -1) {
-            throw std::system_error(errno, std::system_category(), "socket");
-        }
-
-        if (fcntl(newFd, F_SETFL, flags | O_NONBLOCK) == -1) {
-            throw std::system_error(errno, std::system_category(), "socket");
-        }
-    } catch (int e) {
-        std::perror("");
-        if (newFd != -1) {
-            close(newFd);
-        }
-        return -1;
-    }
-
-    return newFd;
-}
-
-int LiveGrapher::ReadPackets(SocketConnection* conn) {
-    int error;
-    uint8_t id;
-
-    error = conn->recvData(reinterpret_cast<char*>(&id), 1);
-    if (error == 0 || (error == -1 && errno != EAGAIN)) {
-        return -1;
-    }
-
-    switch (packetID(id)) {
+    switch (PacketType(id)) {
         case kHostConnectPacket:
             // Start sending data for the graph specified by the ID
-            if (std::find(conn->dataSets.begin(), conn->dataSets.end(),
-                          graphID(id)) == conn->dataSets.end()) {
-                conn->dataSets.push_back(graphID(id));
+            if (std::find(conn.datasets.begin(), conn.datasets.end(),
+                          GraphID(id)) == conn.datasets.end()) {
+                conn.datasets.push_back(GraphID(id));
             }
             break;
         case kHostDisconnectPacket:
             // Stop sending data for the graph specified by the ID
-            conn->dataSets.erase(std::remove(conn->dataSets.begin(),
-                                             conn->dataSets.end(), graphID(id)),
-                                 conn->dataSets.end());
+            conn.datasets.erase(std::remove(conn.datasets.begin(),
+                                            conn.datasets.end(), GraphID(id)),
+                                conn.datasets.end());
             break;
         case kHostListPacket:
             /* A graph count is compared against instead of the graph ID for
@@ -323,9 +199,10 @@ int LiveGrapher::ReadPackets(SocketConnection* conn) {
                     m_buf[2 + m_buf[1]] = 0;
                 }
 
-                // Queue the datagram for writing
-                conn->queueWrite(m_buf.c_str(),
-                                 1 + 1 + graph.first.length() + 1);
+                // Send graph name. The data size is computed explicitly here
+                // because the buffer string's current length may be larger than
+                // that.
+                conn.AddData({m_buf.data(), 1 + 1 + graph.first.length() + 1});
 
                 graphCount++;
             }

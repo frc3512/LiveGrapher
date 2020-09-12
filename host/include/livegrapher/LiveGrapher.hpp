@@ -4,15 +4,17 @@
 
 #include <stdint.h>
 
+#include <atomic>
+#include <chrono>
 #include <map>
-#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
 
-#include "livegrapher/Protocol.hpp"
-#include "livegrapher/SocketConnection.hpp"
+#include "livegrapher/ClientConnection.hpp"
+#include "livegrapher/SocketSelector.hpp"
+#include "livegrapher/TcpListener.hpp"
 
 /**
  * The host for the LiveGrapher real-time graphing application.
@@ -35,7 +37,13 @@
  */
 class LiveGrapher {
 public:
-    explicit LiveGrapher(int port);
+    /**
+     * Constructs a LiveGrapher host.
+     *
+     * @param port The port on which to listen for new clients.
+     */
+    explicit LiveGrapher(uint16_t port);
+
     ~LiveGrapher();
 
     /**
@@ -48,29 +56,50 @@ public:
      */
     void AddData(const std::string& dataset, float value);
 
+    /**
+     * Send time (x value) and data (y value) for a given dataset to remote
+     * client.
+     *
+     * @param dataset The name of the dataset to which the value belongs.
+     * @param time    The x value.
+     * @param value   The y value.
+     */
+    void AddData(const std::string& dataset, std::chrono::milliseconds time,
+                 float value);
+
 private:
     std::thread m_thread;
-    std::mutex m_mutex;
-    int m_listenFd;
-    int m_ipcFdReader;
-    int m_ipcFdWriter;
+    std::mutex m_connListMutex;
+    std::atomic<bool> m_isRunning{false};
+    TcpListener m_listener;
+    SocketSelector m_selector;
 
     /* Sorted by graph name instead of ID because the user passes in a string.
      * (They don't know the ID.) This makes graph ID lookups take O(log n).
      */
     std::map<std::string, uint8_t> m_graphList;
 
-    std::vector<std::unique_ptr<SocketConnection>> m_connList;
+    std::vector<ClientConnection> m_connList;
 
     // Temporary buffer used in ReadPackets()
     std::string m_buf;
 
-    static constexpr uint8_t packetID(uint8_t id) {
+    /**
+     * Extract the packet type from the ID field of a received client packet.
+     *
+     * @param id The client packet ID field.
+     */
+    static constexpr uint8_t PacketType(uint8_t id) {
         // Masks two high-order bits
         return id & 0xC0;
     }
 
-    static constexpr uint8_t graphID(uint8_t id) {
+    /**
+     * Extract the graph ID from a host connect or disconnect packet's ID field.
+     *
+     * @param id The client packet ID field.
+     */
+    static constexpr uint8_t GraphID(uint8_t id) {
         // Masks six low-order bits
         return id & 0x2F;
     }
@@ -78,21 +107,10 @@ private:
     void ThreadMain();
 
     /**
-     * Listen for new connection on the given port and return the file
-     * descriptor of the listening socket..
+     * Read packets from the given client.
      *
-     * @param port       Port on which to listen
-     * @param sourceAddr Source address on which to listen
+     * @param conn The client connection.
+     * @return 0 if the read succeeded and -1 if it failed.
      */
-    static int Listen(int port, uint32_t sourceAddr);
-
-    /**
-     * Accept new connection from the given listener socket file descriptor.
-     *
-     * @param listenFd The listener socket file descriptor.
-     * @return The new connection's file descriptor.
-     */
-    static int Accept(int listenFd);
-
-    int ReadPackets(SocketConnection* conn);
+    int ReadPackets(ClientConnection& conn);
 };
