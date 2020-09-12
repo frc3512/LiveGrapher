@@ -105,7 +105,7 @@ void LiveGrapher::ThreadMain() {
         FD_ZERO(&errorfds);
 
         // Reset the maxfd
-        maxfd = m_listenFd;
+        maxfd = std::max(m_listenFd, m_ipcFdReader);
 
         {
             std::scoped_lock lock(m_mutex);
