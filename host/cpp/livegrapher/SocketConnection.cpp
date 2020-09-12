@@ -35,10 +35,9 @@ void SocketConnection::writePackets() {
     while (!m_writeDone || m_writeQueue.size() > 0) {
         // Get another buffer to send
         if (m_writeDone) {
-            writeBuf = m_writeQueue.front();
+            writeBuf = m_writeQueue.pop_front();
             writeBufOffset = 0;
             m_writeDone = false;
-            m_writeQueue.pop_front();
         }
 
         // These descriptors are ready for writing
