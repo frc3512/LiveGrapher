@@ -23,26 +23,30 @@ public:
 
     int recvData(char* buf, size_t length);
     int readPackets();
+
+    /**
+     * Write queued data to a socket when the socket becomes ready.
+     */
     void writePackets();
 
     template <class T>
     void queueWrite(T& buf) {
-        m_writequeue.emplace(reinterpret_cast<const char*>(&buf), sizeof(T));
+        m_writeQueue.emplace(reinterpret_cast<const char*>(&buf), sizeof(T));
 
         // Select on write
-        selectflags |= SocketConnection::Write;
+        selectFlags |= SocketConnection::Write;
         write(m_ipcfd_w, "r", 1);
     }
 
     void queueWrite(const char* buf, size_t length);
 
     int fd;
-    uint8_t selectflags = Read | Error;
+    uint8_t selectFlags = Read | Error;
     std::vector<uint8_t> dataSets;
 
 private:
     int m_ipcfd_w;
 
-    bool m_writedone = true;
-    std::queue<std::string> m_writequeue;
+    bool m_writeDone = true;
+    std::queue<std::string> m_writeQueue;
 };

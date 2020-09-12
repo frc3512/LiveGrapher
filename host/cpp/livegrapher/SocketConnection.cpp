@@ -29,32 +29,31 @@ int SocketConnection::recvData(char* buf, size_t length) {
     return error;
 }
 
-// Write queued data to a socket when the socket becomes ready
 void SocketConnection::writePackets() {
-    std::string_view writebuf;
-    size_t writebufoffset = 0;
+    std::string_view writeBuf;
+    size_t writeBufOffset = 0;
 
     /* While the current buffer isn't done sending or there are more buffers to
      * send
      */
-    while (!m_writedone || !m_writequeue.empty()) {
+    while (!m_writeDone || !m_writeQueue.empty()) {
         // Get another buffer to send
-        if (m_writedone) {
-            writebuf = m_writequeue.front();
-            writebufoffset = 0;
-            m_writedone = false;
-            m_writequeue.pop();
+        if (m_writeDone) {
+            writeBuf = m_writeQueue.front();
+            writeBufOffset = 0;
+            m_writeDone = false;
+            m_writeQueue.pop();
         }
 
         // These descriptors are ready for writing
-        writebufoffset +=
-            send(fd, &writebuf[0], writebuf.length() - writebufoffset, 0);
+        writeBufOffset +=
+            send(fd, &writeBuf[0], writeBuf.length() - writeBufOffset, 0);
 
         // Have we finished writing the buffer?
-        if (writebufoffset == writebuf.length()) {
+        if (writeBufOffset == writeBuf.length()) {
             // Reset the write buffer
-            writebufoffset = 0;
-            m_writedone = true;
+            writeBufOffset = 0;
+            m_writeDone = true;
         } else {
             // We haven't finished writing, keep selecting
             return;
@@ -62,13 +61,13 @@ void SocketConnection::writePackets() {
     }
 
     // Stop selecting on write
-    selectflags &= ~SocketConnection::Write;
+    selectFlags &= ~SocketConnection::Write;
 }
 
 void SocketConnection::queueWrite(const char* buf, size_t length) {
-    m_writequeue.emplace(buf, length);
+    m_writeQueue.emplace(buf, length);
 
     // Select on write
-    selectflags |= SocketConnection::Write;
+    selectFlags |= SocketConnection::Write;
     write(m_ipcfd_w, "r", 1);
 }
