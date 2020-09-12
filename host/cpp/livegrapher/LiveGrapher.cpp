@@ -146,13 +146,13 @@ void LiveGrapher::socket_threadmain() {
                 if (maxfd < conn->fd) {
                     maxfd = conn->fd;
                 }
-                if (conn->selectFlags & SocketConnection::Read) {
+                if (conn->selectFlags & SocketConnection::Select::Read) {
                     FD_SET(conn->fd, &readfds);
                 }
-                if (conn->selectFlags & SocketConnection::Write) {
+                if (conn->selectFlags & SocketConnection::Select::Write) {
                     FD_SET(conn->fd, &writefds);
                 }
-                if (conn->selectFlags & SocketConnection::Error) {
+                if (conn->selectFlags & SocketConnection::Select::Error) {
                     FD_SET(conn->fd, &errorfds);
                 }
             }

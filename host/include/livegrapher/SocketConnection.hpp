@@ -15,7 +15,7 @@
  */
 class SocketConnection {
 public:
-    enum selector { Read = 1, Write = 2, Error = 4 };
+    enum Select { Read = 1, Write = 2, Error = 4 };
 
     SocketConnection(int nfd, int ipcWriteSock);
     ~SocketConnection();
@@ -43,7 +43,7 @@ public:
     void queueWrite(const char* buf, size_t length);
 
     int fd;
-    uint8_t selectFlags = Read | Error;
+    uint8_t selectFlags = Select::Read | Select::Error;
     std::vector<uint8_t> dataSets;
 
 private:

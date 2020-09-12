@@ -61,13 +61,13 @@ void SocketConnection::writePackets() {
     }
 
     // Stop selecting on write
-    selectFlags &= ~SocketConnection::Write;
+    selectFlags &= ~Select::Write;
 }
 
 void SocketConnection::queueWrite(const char* buf, size_t length) {
     m_writeQueue.emplace_back(buf, length);
 
     // Select on write
-    selectFlags |= SocketConnection::Write;
+    selectFlags |= Select::Write;
     write(m_ipcfd_w, "r", 1);
 }
