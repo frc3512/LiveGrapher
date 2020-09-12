@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <system_error>
 
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
@@ -19,13 +20,13 @@ LiveGrapher::LiveGrapher(int port) {
     // Listen on a socket
     m_listenFd = Listen(port, 0);
     if (m_listenFd == -1) {
-        throw -1;
+        throw std::system_error(errno, std::system_category(), "socket");
     }
 
     // Create a pipe for IPC with the thread
     int pipeFd[2];
     if (pipe(pipeFd) == -1) {
-        throw -1;
+        throw std::system_error(errno, std::system_category(), "socket");
     }
 
     m_ipcFdReader = pipeFd[0];
@@ -198,7 +199,7 @@ int LiveGrapher::Listen(int port, uint32_t sourceAddr) {
         // Create a TCP socket
         sd = socket(AF_INET, SOCK_STREAM, 0);
         if (sd == -1) {
-            throw -1;
+            throw std::system_error(errno, std::system_category(), "socket");
         }
 
         // Allow rebinding to the socket later if the connection is interrupted
@@ -216,12 +217,12 @@ int LiveGrapher::Listen(int port, uint32_t sourceAddr) {
         // Bind the socket to the listener sockaddr_in
         if (bind(sd, reinterpret_cast<sockaddr*>(&servAddr),
                  sizeof(sockaddr_in)) != 0) {
-            throw -1;
+            throw std::system_error(errno, std::system_category(), "socket");
         }
 
         // Listen on the socket for incoming connections
         if (listen(sd, 5) != 0) {
-            throw -1;
+            throw std::system_error(errno, std::system_category(), "socket");
         }
     } catch (int e) {
         std::perror("");
@@ -252,17 +253,17 @@ int LiveGrapher::Accept(int listenFd) {
 
         // Make sure that the file descriptor is valid
         if (newFd == -1) {
-            throw -1;
+            throw std::system_error(errno, std::system_category(), "socket");
         }
 
         // Set the socket non-blocking
         int flags = fcntl(newFd, F_GETFL, 0);
         if (flags == -1) {
-            throw -1;
+            throw std::system_error(errno, std::system_category(), "socket");
         }
 
         if (fcntl(newFd, F_SETFL, flags | O_NONBLOCK) == -1) {
-            throw -1;
+            throw std::system_error(errno, std::system_category(), "socket");
         }
     } catch (int e) {
         std::perror("");
