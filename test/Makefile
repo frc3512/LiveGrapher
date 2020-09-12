@@ -91,9 +91,9 @@ endif
 clean:
 	@echo Removing object files
 ifdef VERBOSE
-	-$(RM) -r $(OBJDIR)/$(SRCDIR)
+	-$(RM) -r $(OBJDIR)/$(SRCDIR) $(OBJDIR)/host
 	-$(RM) $(OBJDIR)/$(EXEC)
 else
-	-@$(RM) -r $(OBJDIR)/$(SRCDIR)
+	-@$(RM) -r $(OBJDIR)/$(SRCDIR) $(OBJDIR)/host
 	-@$(RM) $(OBJDIR)/$(EXEC)
 endif
