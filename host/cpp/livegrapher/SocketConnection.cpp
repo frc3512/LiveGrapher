@@ -5,10 +5,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#ifdef __VXWORKS__
-#include <sockLib.h>
-#endif
-
 #include <string_view>
 
 SocketConnection::SocketConnection(int nfd, int ipcWriteSock) {

@@ -2,24 +2,14 @@
 
 #include "livegrapher/LiveGrapher.hpp"
 
-#include <algorithm>
-#include <cstring>
-
-#ifdef __VXWORKS__
-#include <hostLib.h>
-#include <pipeDrv.h>
-#include <selectLib.h>
-#include <sockLib.h>
-
-#include <cstdio>
-#define be64toh(x) x
-#else
 #include <endian.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <signal.h>
-#endif
+
+#include <algorithm>
+#include <cstring>
 
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
@@ -34,19 +24,9 @@ LiveGrapher::LiveGrapher(int port) {
 
     // Create a pipe for IPC with the thread
     int pipefd[2];
-#ifdef __VXWORKS__
-    pipeDevCreate("/pipe/graphhost", 10, 100);
-    pipefd[0] = open("/pipe/graphhost", O_RDONLY, 0644);
-    pipefd[1] = open("/pipe/graphhost", O_WRONLY, 0644);
-
-    if (pipefd[0] == -1 || pipefd[1] == -1) {
-        throw -1;
-    }
-#else
     if (pipe(pipefd) == -1) {
         throw -1;
     }
-#endif
 
     m_ipcfd_r = pipefd[0];
     m_ipcfd_w = pipefd[1];
@@ -235,11 +215,9 @@ int LiveGrapher::socket_listen(int port, uint32_t s_addr) {
             throw -1;
         }
 
-// Allow rebinding to the socket later if the connection is interrupted
-#ifndef __VXWORKS__
+        // Allow rebinding to the socket later if the connection is interrupted
         int optval = 1;
         setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-#endif
 
         // Zero out the serv_addr struct
         std::memset(&serv_addr, 0, sizeof(sockaddr_in));
@@ -274,11 +252,7 @@ int LiveGrapher::socket_listen(int port, uint32_t s_addr) {
 }
 
 int LiveGrapher::socket_accept(int listenfd) {
-#ifdef __VXWORKS__
-    int clilen;
-#else
     unsigned int clilen;
-#endif
     sockaddr_in cli_addr;
 
     clilen = sizeof(cli_addr);
@@ -295,13 +269,6 @@ int LiveGrapher::socket_accept(int listenfd) {
             throw -1;
         }
 
-#ifdef __VXWORKS__
-        // Set the socket non-blocking
-        int on = 1;
-        if (ioctl(new_fd, static_cast<int>(FIONBIO), on) == -1) {
-            throw -1;
-        }
-#else
         // Set the socket non-blocking
         int flags = fcntl(new_fd, F_GETFL, 0);
         if (flags == -1) {
@@ -311,7 +278,6 @@ int LiveGrapher::socket_accept(int listenfd) {
         if (fcntl(new_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
             throw -1;
         }
-#endif
     } catch (int e) {
         std::perror("");
         if (new_fd != -1) {
