@@ -5,9 +5,10 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include <queue>
 #include <string>
 #include <vector>
+
+#include "wpi/static_circular_buffer.h"
 
 /**
  * Wrapper around graph client socket descriptors
@@ -31,7 +32,8 @@ public:
 
     template <class T>
     void queueWrite(T& buf) {
-        m_writeQueue.emplace(reinterpret_cast<const char*>(&buf), sizeof(T));
+        m_writeQueue.emplace_back(reinterpret_cast<const char*>(&buf),
+                                  sizeof(T));
 
         // Select on write
         selectFlags |= SocketConnection::Write;
@@ -48,5 +50,5 @@ private:
     int m_ipcfd_w;
 
     bool m_writeDone = true;
-    std::queue<std::string> m_writeQueue;
+    wpi::static_circular_buffer<std::string, 32> m_writeQueue;
 };

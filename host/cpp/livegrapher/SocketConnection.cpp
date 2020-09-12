@@ -36,13 +36,13 @@ void SocketConnection::writePackets() {
     /* While the current buffer isn't done sending or there are more buffers to
      * send
      */
-    while (!m_writeDone || !m_writeQueue.empty()) {
+    while (!m_writeDone || m_writeQueue.size() > 0) {
         // Get another buffer to send
         if (m_writeDone) {
             writeBuf = m_writeQueue.front();
             writeBufOffset = 0;
             m_writeDone = false;
-            m_writeQueue.pop();
+            m_writeQueue.pop_front();
         }
 
         // These descriptors are ready for writing
@@ -65,7 +65,7 @@ void SocketConnection::writePackets() {
 }
 
 void SocketConnection::queueWrite(const char* buf, size_t length) {
-    m_writeQueue.emplace(buf, length);
+    m_writeQueue.emplace_back(buf, length);
 
     // Select on write
     selectFlags |= SocketConnection::Write;
