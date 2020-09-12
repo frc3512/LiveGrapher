@@ -12,3 +12,7 @@ generatedFileExclude {
   \.ico$
   qcustomplot\.
 }
+
+includeOtherLibs {
+  ^wpi/
+}

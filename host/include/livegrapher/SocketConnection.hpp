@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "wpi/static_circular_buffer.h"
+#include <wpi/static_circular_buffer.h>
 
 /**
  * Wrapper around graph client socket descriptors
