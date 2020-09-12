@@ -51,9 +51,9 @@ public:
 private:
     std::thread m_thread;
     std::mutex m_mutex;
-    int m_listenfd;
-    int m_ipcfd_r;
-    int m_ipcfd_w;
+    int m_listenFd;
+    int m_ipcFdReader;
+    int m_ipcFdWriter;
 
     /* Sorted by graph name instead of ID because the user passes in a string.
      * (They don't know the ID.) This makes graph ID lookups take O(log n).
@@ -65,13 +65,34 @@ private:
     // Temporary buffer used in ReadPackets()
     std::string m_buf;
 
-    static uint8_t packetID(uint8_t id);
-    static uint8_t graphID(uint8_t id);
+    static constexpr uint8_t packetID(uint8_t id) {
+        // Masks two high-order bits
+        return id & 0xC0;
+    }
 
-    void socket_threadmain();
+    static constexpr uint8_t graphID(uint8_t id) {
+        // Masks six low-order bits
+        return id & 0x2F;
+    }
 
-    static int socket_listen(int port, uint32_t s_addr);
-    static int socket_accept(int listenfd);
+    void ThreadMain();
+
+    /**
+     * Listen for new connection on the given port and return the file
+     * descriptor of the listening socket..
+     *
+     * @param port       Port on which to listen
+     * @param sourceAddr Source address on which to listen
+     */
+    static int Listen(int port, uint32_t sourceAddr);
+
+    /**
+     * Accept new connection from the given listener socket file descriptor.
+     *
+     * @param listenFd The listener socket file descriptor.
+     * @return The new connection's file descriptor.
+     */
+    static int Accept(int listenFd);
 
     int ReadPackets(SocketConnection* conn);
 };
