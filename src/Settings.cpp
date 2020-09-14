@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2020 FRC Team 3512. All Rights Reserved.
 
 #include "Settings.hpp"
 
@@ -29,10 +29,6 @@ void Settings::update() {
         // Add name-value pair to map
         m_values[name] = value;
     } while (!settings.eof());
-
-    settings.close();
-
-    std::cout << "Settings loaded from " << m_fileName << "\n";
 }
 
 std::string Settings::getString(const std::string& key) const {
@@ -84,8 +80,6 @@ void Settings::saveToFile(const std::string& fileName) {
         for (auto index : m_values) {
             outFile << index.first << " = " << index.second << "\n";
         }
-
-        outFile.close();
     }
 }
 
