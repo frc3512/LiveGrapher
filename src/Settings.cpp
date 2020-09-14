@@ -4,31 +4,29 @@
 
 #include <fstream>
 #include <iostream>
+#include <regex>
 
-Settings::Settings(std::string fileName) : m_fileName(fileName) { update(); }
+Settings::Settings(std::string_view filename) : m_filename(filename) {
+    update();
+}
 
 void Settings::update() {
-    std::string name;
-    std::string value;
-
     m_values.clear();
 
-    std::ifstream settings(m_fileName.c_str());
+    std::ifstream settings{m_filename};
     if (!settings.is_open()) {
-        std::cout << "Failed to open " << m_fileName << "\n";
+        std::cerr << "Failed to open " << m_filename << "\n";
         return;
     }
 
-    do {
-        std::getline(settings, m_rawStr);
-
-        m_index = 0;
-        name = extractKey();
-        value = extractValue();
-
-        // Add name-value pair to map
-        m_values[name] = value;
-    } while (!settings.eof());
+    std::string line;
+    std::regex lineRegex{"(\\w+)\\s*=\\s*([\\w\\.]+)"};
+    while (std::getline(settings, line)) {
+        std::smatch match;
+        if (std::regex_search(line, match, lineRegex)) {
+            m_values[match.str(1)] = match.str(2);
+        }
+    }
 }
 
 std::string Settings::getString(const std::string& key) const {
@@ -36,7 +34,7 @@ std::string Settings::getString(const std::string& key) const {
 
     // If the element wasn't found
     if (index == m_values.end()) {
-        std::cout << "Settings: " << m_fileName << ": '" << key
+        std::cerr << "Settings: " << m_filename << ": '" << key
                   << "' not found\n";
         return "NOT_FOUND";
     }
@@ -50,13 +48,13 @@ double Settings::getDouble(const std::string& key) const {
 
     // If the element wasn't found
     if (index == m_values.end()) {
-        std::cout << "Settings: " << m_fileName << ": '" << key
+        std::cerr << "Settings: " << m_filename << ": '" << key
                   << "' not found\n";
         return 0.f;
     }
 
     // Else return the value for that element
-    return std::atof(index->second.c_str());
+    return std::stof(index->second);
 }
 
 int Settings::getInt(const std::string& key) const {
@@ -64,51 +62,22 @@ int Settings::getInt(const std::string& key) const {
 
     // If the element wasn't found
     if (index == m_values.end()) {
-        std::cout << "Settings: " << m_fileName << ": '" << key
+        std::cerr << "Settings: " << m_filename << ": '" << key
                   << "' not found\n";
         return 0;
     }
 
     // Else return the value for that element
-    return std::atoi(index->second.c_str());
+    return std::stoi(index->second);
 }
 
-void Settings::saveToFile(const std::string& fileName) {
-    std::ofstream outFile(fileName, std::ios_base::out | std::ios_base::trunc);
+void Settings::saveToFile(std::string_view filename) {
+    std::ofstream outFile(std::string{filename},
+                          std::ostream::out | std::ostream::trunc);
 
     if (outFile.is_open()) {
         for (auto index : m_values) {
             outFile << index.first << " = " << index.second << "\n";
         }
     }
-}
-
-std::string Settings::extractKey() {
-    // Find start of name
-    m_index = m_rawStr.find_first_not_of(" \t", m_index);
-    if (m_index == std::string::npos) {
-        return "";
-    }
-
-    size_t keyStart = m_index;
-
-    // Find end of name
-    m_index = m_rawStr.find_first_of(" \t=", m_index);
-
-    return m_rawStr.substr(keyStart, m_index - keyStart);
-}
-
-std::string Settings::extractValue() {
-    // Find start of value
-    m_index = m_rawStr.find_first_not_of(" \t=", m_index);
-    if (m_index == std::string::npos) {
-        return "";
-    }
-
-    size_t valueStart = m_index;
-
-    // Find end of value
-    m_index = m_rawStr.find_first_of(" \t", m_index);
-
-    return m_rawStr.substr(valueStart, m_index - valueStart);
 }
