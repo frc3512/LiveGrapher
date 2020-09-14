@@ -3,8 +3,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
 TARGET = LiveGrapher
 TEMPLATE = app
-lessThan(QT_MAJOR_VERSION, 5): QMAKE_CXXFLAGS += -std=c++1y
-greaterThan(QT_MAJOR_VERSION, 4): CONFIG += c++14
+lessThan(QT_MAJOR_VERSION, 5): QMAKE_CXXFLAGS += -std=c++17
+greaterThan(QT_MAJOR_VERSION, 4): CONFIG += c++17
 
 CONFIG += debug_and_release
 
