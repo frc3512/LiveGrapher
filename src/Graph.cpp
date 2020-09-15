@@ -382,16 +382,33 @@ void Graph::HandleSocketData() {
 }
 
 void Graph::SendGraphChoices() {
-    // If true, graphs aren't created yet
-    bool makeGraphs = m_window.m_ui.plot->graphCount() == 0;
+    // If true, graphs haven't been created yet
+    bool createGraphs = m_window.m_ui.plot->graphCount() == 0;
 
-    /* Send updated status on streams to which to connect based on the bit
-     * array
-     */
-    for (uint32_t i = 0; i < m_graphNames.size(); i++) {
+    // Send updated status on streams to which to connect based on the bit array
+    for (uint32_t i = 0; i < m_graphNames.size(); ++i) {
+        // If there are no graphs yet, create one for each dataset
+        if (createGraphs) {
+            // For HSV, V starts out at 1. H cycles through 12 colors (roughly
+            // the rainbow). When it wraps around 360 degrees, V is decremented
+            // by 0.5. S is always 1. This algorithm gives 25 possible values,
+            // one being black.
+            constexpr uint32_t parts = 12;
+            CreateGraph(m_graphNames[i],
+                        HSVtoRGB(360 / parts * i % 360, 1,
+                                 1 - 0.5 * std::floor(i / parts)));
+        }
+
+        // Remove all graphs from legend so the requested ones are properly
+        // ordered after reconnects
+        m_window.m_ui.plot->graph(i)->removeFromLegend();
+
         // If the graph data is requested
         if (m_curSelect & (1 << i)) {
             m_hostPacket.ID = k_hostConnectPacket | i;
+
+            // Add dataset back to legend
+            m_window.m_ui.plot->graph(i)->addToLegend();
         } else {
             // Tell server to stop sending stream
             m_hostPacket.ID = k_hostDisconnectPacket | i;
@@ -404,19 +421,6 @@ void Graph::SendGraphChoices() {
                 QObject::tr("Sending graph choices to remote host failed"));
             m_dataSocket.disconnect();
             m_startTime = 0;
-        }
-
-        /* Create a graph for each dataset requested.
-         *
-         * V starts out at 1. H cycles through 12 colors (roughly the rainbow).
-         * When it wraps around 360 degrees, V is decremented by 0.5. S is
-         * always 1. This algorithm gives 25 possible values, one being black.
-         */
-        if (makeGraphs) {
-            constexpr uint32_t parts = 12;
-            CreateGraph(m_graphNames[i],
-                        HSVtoRGB(360 / parts * i % 360, 1,
-                                 1 - 0.5 * std::floor(i / parts)));
         }
     }
 }
