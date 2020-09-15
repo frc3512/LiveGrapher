@@ -6,7 +6,7 @@ LiveGrapher graphs data received over a network in real time (useful for tuning 
 
 If one is building on Windows, we recommend using the [MSYS2 compiler](https://msys2.github.io/). The following libraries are required as dependencies and should be installed using either your package manager of choice or MSYS2's pacman:
 
-* Qt 4 or Qt 5 (Qt 5 recommended)
+* Qt 5
 
 ## Building LiveGrapher
 
