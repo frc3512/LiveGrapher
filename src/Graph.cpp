@@ -206,6 +206,13 @@ bool Graph::SaveAsCSV() {
     }
     saveFile << '\n';
 
+    // Find first non-empty dataset. This will dataset's time values will be
+    // used for the first column.
+    size_t firstDataset = 0;
+    while (m_datasets[firstDataset].size() == 0) {
+        ++firstDataset;
+    }
+
     // While there is still data in at least one dataset to add to the file
     size_t row = 0;
     bool haveData = true;
@@ -213,8 +220,8 @@ bool Graph::SaveAsCSV() {
         haveData = false;
 
         // Only write X values of first dataset since X values of all
-        // datasets are identical
-        saveFile << m_datasets[0][row].first << ',';
+        // datasets are identical.
+        saveFile << m_datasets[firstDataset][row].first << ',';
 
         for (size_t col = 0; col < m_datasets.size(); ++col) {
             // If there are still points in this dataset to add
