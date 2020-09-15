@@ -249,76 +249,93 @@ bool Graph::SaveAsCSV() {
 }
 
 void Graph::HandleSocketData() {
-    bool recvSuccess = true;
-    bool continueReceive = true;
+    auto reportFailure = [&] {
+        QMessageBox::critical(
+            &m_window, QObject::tr("Connection Error"),
+            QObject::tr("Receiving data from remote host failed"));
+        m_dataSocket.disconnect();
+        m_startTime = 0;
+        m_state = ReceiveState::ID;
+    };
 
-    while (continueReceive) {
+    while (1) {
         if (m_state == ReceiveState::ID) {
-            if (m_dataSocket.bytesAvailable() >= 1) {
-                char id;
-                recvSuccess = RecvData(&id, 1);
-                if (recvSuccess) {
-                    // Check packet type
-                    switch (PacketType(id)) {
-                        case k_clientDataPacket:
-                            m_clientDataPacket.ID = id;
-                            m_state = ReceiveState::Data;
-                            break;
-                        case k_clientListPacket:
-                            m_clientListPacket.ID = id;
-                            m_state = ReceiveState::NameLength;
-                            break;
-                    }
-                }
-            } else {
-                continueReceive = false;
+            if (m_dataSocket.bytesAvailable() == 0) {
+                return;
+            }
+
+            char id;
+            if (!RecvData(&id, 1)) {
+                reportFailure();
+                return;
+            }
+
+            // Check packet type
+            switch (PacketType(id)) {
+                case k_clientDataPacket:
+                    m_clientDataPacket.ID = id;
+                    m_state = ReceiveState::Data;
+                    break;
+                case k_clientListPacket:
+                    m_clientListPacket.ID = id;
+                    m_state = ReceiveState::NameLength;
+                    break;
             }
         } else if (m_state == ReceiveState::Data) {
-            if (static_cast<quint64>(m_dataSocket.bytesAvailable()) >=
+            if (static_cast<quint64>(m_dataSocket.bytesAvailable()) <
                 sizeof(m_clientDataPacket.x) + sizeof(m_clientDataPacket.y)) {
-                recvSuccess = RecvData(&m_clientDataPacket.x,
-                                       sizeof(m_clientDataPacket.x));
+                return;
+            }
 
-                if (recvSuccess) {
-                    recvSuccess = RecvData(&m_clientDataPacket.y,
-                                           sizeof(m_clientDataPacket.y));
-                    if (recvSuccess) {
-                        m_state = ReceiveState::DataComplete;
-                    }
-                }
-            } else {
-                continueReceive = false;
+            if (!RecvData(&m_clientDataPacket.x,
+                          sizeof(m_clientDataPacket.x))) {
+                reportFailure();
+                return;
             }
+
+            if (!RecvData(&m_clientDataPacket.y,
+                          sizeof(m_clientDataPacket.y))) {
+                reportFailure();
+                return;
+            }
+
+            m_state = ReceiveState::DataComplete;
         } else if (m_state == ReceiveState::NameLength) {
-            if (m_dataSocket.bytesAvailable() >= 1) {
-                recvSuccess = RecvData(&m_clientListPacket.length,
-                                       sizeof(m_clientListPacket.length));
-                if (recvSuccess) {
-                    m_clientListPacket.name.resize(m_clientListPacket.length);
-                    m_state = ReceiveState::Name;
-                }
-            } else {
-                continueReceive = false;
+            if (m_dataSocket.bytesAvailable() == 0) {
+                return;
             }
+
+            if (!RecvData(&m_clientListPacket.length,
+                          sizeof(m_clientListPacket.length))) {
+                reportFailure();
+                return;
+            }
+
+            m_clientListPacket.name.resize(m_clientListPacket.length);
+            m_state = ReceiveState::Name;
         } else if (m_state == ReceiveState::Name) {
-            if (m_dataSocket.bytesAvailable() >= m_clientListPacket.length) {
-                recvSuccess = RecvData(&m_clientListPacket.name[0],
-                                       m_clientListPacket.length);
-                if (recvSuccess) {
-                    m_state = ReceiveState::EndOfFile;
-                }
-            } else {
-                continueReceive = false;
+            if (m_dataSocket.bytesAvailable() < m_clientListPacket.length) {
+                return;
             }
+
+            if (!RecvData(&m_clientListPacket.name[0],
+                          m_clientListPacket.length)) {
+                reportFailure();
+                return;
+            }
+
+            m_state = ReceiveState::EndOfFile;
         } else if (m_state == ReceiveState::EndOfFile) {
-            if (m_dataSocket.bytesAvailable() >= 1) {
-                recvSuccess = RecvData(&m_clientListPacket.eof, 1);
-                if (recvSuccess) {
-                    m_state = ReceiveState::ListComplete;
-                }
-            } else {
-                continueReceive = false;
+            if (m_dataSocket.bytesAvailable() == 0) {
+                return;
             }
+
+            if (!RecvData(&m_clientListPacket.eof, 1)) {
+                reportFailure();
+                return;
+            }
+
+            m_state = ReceiveState::ListComplete;
         } else if (m_state == ReceiveState::DataComplete) {
             /* ===== Add sent point to local graph ===== */
             // This will only work if ints are the same size as floats
@@ -369,15 +386,6 @@ void Graph::HandleSocketData() {
 
             m_state = ReceiveState::ID;
         }
-    }
-
-    if (!recvSuccess) {
-        QMessageBox::critical(
-            &m_window, QObject::tr("Connection Error"),
-            QObject::tr("Receiving data from remote host failed"));
-        m_dataSocket.disconnect();
-        m_startTime = 0;
-        m_state = ReceiveState::ID;
     }
 }
 

@@ -100,8 +100,10 @@ void MainWindow::AddData(int graphId, float x, float y) {
             for (int i = 0; i < plot.graphCount(); i++) {
                 // Rescale value (vertical) axis to fit the current data
                 if (i == 0) {
-                    plot.graph(i)->rescaleValueAxis();
+                    // Shrink window to fit first plot
+                    plot.graph(i)->rescaleValueAxis(false);
                 } else {
+                    // Expand window to fit all subsequent plots
                     plot.graph(i)->rescaleValueAxis(true);
                 }
             }
@@ -116,12 +118,16 @@ void MainWindow::AddData(int graphId, float x, float y) {
         plot.xAxis->setRange(x, m_xHistory, Qt::AlignRight);
     }
 
-    static uint64_t lastTime = 0;
-    static uint64_t currentTime;
-    currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      std::chrono::system_clock::now().time_since_epoch())
-                      .count();
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+    using std::chrono::steady_clock;
 
+    static uint64_t lastTime = 0;
+    uint64_t currentTime =
+        duration_cast<milliseconds>(steady_clock::now().time_since_epoch())
+            .count();
+
+    // Limit refresh rate to 30 FPS
     if (currentTime - lastTime > 1000 / 30) {
         plot.replot();
         lastTime = currentTime;
