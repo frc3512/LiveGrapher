@@ -169,7 +169,7 @@ private:
     /**
      * Generates unique name for a file based on the current time.
      */
-    std::string GenerateFileName();
+    std::string GenerateFilename();
 
     friend class SelectDialog;
 };

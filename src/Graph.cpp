@@ -4,9 +4,9 @@
 
 #include <cmath>
 #include <cstring>
+#include <ctime>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 
 #include <QMessageBox>
 #include <QtEndian>
@@ -159,7 +159,7 @@ bool Graph::ScreenshotGraph() {
         return false;
     } else {
         bool success = m_window.m_ui.plot->savePng(
-            QString::fromStdString("./" + GenerateFileName() + ".png"));
+            QString::fromStdString("./" + GenerateFilename() + ".png"));
 
         if (success) {
             QMessageBox::information(&m_window, QObject::tr("Save Data"),
@@ -181,7 +181,7 @@ bool Graph::SaveAsCSV() {
         return false;
     }
 
-    std::ofstream saveFile(GenerateFileName() + ".csv", std::ofstream::trunc);
+    std::ofstream saveFile(GenerateFilename() + ".csv", std::ofstream::trunc);
 
     if (!saveFile.is_open()) {
         QMessageBox::critical(&m_window, QObject::tr("Save Data"),
@@ -456,23 +456,13 @@ bool Graph::RecvData(void* data, size_t length) {
     return true;
 }
 
-std::string Graph::GenerateFileName() {
-    using days = std::chrono::duration<
-        int,
-        std::ratio_multiply<std::chrono::hours::period, std::ratio<24>>::type>;
-    auto tp = std::chrono::system_clock::now().time_since_epoch();
-    auto d = std::chrono::duration_cast<days>(tp);
-    tp -= d;
-    auto h = std::chrono::duration_cast<std::chrono::hours>(tp);
-    tp -= h;
-    auto m = std::chrono::duration_cast<std::chrono::minutes>(tp);
-    tp -= m;
-    auto s = std::chrono::duration_cast<std::chrono::seconds>(tp);
-    tp -= s;
+std::string Graph::GenerateFilename() {
+    // Get the current date/time as a string. ISO 8601 format is roughly
+    // YYYY-MM-DDTHH:mm:ss.
+    auto time = std::time(nullptr);
+    struct tm localTime = *std::localtime(&time);
+    char datetime[80];
+    std::strftime(datetime, sizeof(datetime), "%Y-%m-%dT%H_%M_%S", &localTime);
 
-    std::stringstream ss;
-    ss << "Graph-" << d.count() << "-T" << h.count() << "." << m.count() << "."
-       << s.count();
-
-    return ss.str();
+    return std::string{"Graph-"} + datetime;
 }
