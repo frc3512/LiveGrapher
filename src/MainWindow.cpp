@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2020 FRC Team 3512. All Rights Reserved.
 
 #include "MainWindow.hpp"
 
@@ -14,9 +14,9 @@ MainWindow::MainWindow(QWidget* parent)
     m_ui.plot->setInteraction(QCP::iRangeZoom, true);
 
     connect(m_ui.actionScreenshot_Graph, SIGNAL(triggered()), &m_graph,
-            SLOT(screenshotGraph()));
+            SLOT(ScreenshotGraph()));
     connect(m_ui.actionSave_As_CSV, SIGNAL(triggered()), &m_graph,
-            SLOT(saveAsCSV()));
+            SLOT(SaveAsCSV()));
     connect(m_ui.actionAbout, &QAction::triggered, [this] {
         QMessageBox::about(this, tr("About LiveGrapher"),
                            tr("<br>LiveGrapher 3.1<br>"
@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget* parent)
                               "FRC Team 3512<br>"
                               "All Rights Reserved"));
     });
-    connect(m_ui.connectButton, SIGNAL(released()), this, SLOT(reconnect()));
+    connect(m_ui.connectButton, SIGNAL(released()), this, SLOT(Reconnect()));
 
     /* Pauses graphing so user can inspect it (disables auto-scrolling but data
      * is still appended to any graphs)
@@ -33,17 +33,17 @@ MainWindow::MainWindow(QWidget* parent)
         if (m_isPlaying) {
             m_ui.pauseButton->setText("Play");
             m_isPlaying = false;
-        } else if (m_graph.isConnected()) {
+        } else if (m_graph.IsConnected()) {
             m_ui.pauseButton->setText("Pause");
             m_isPlaying = true;
         }
     });
 
     connect(m_ui.clearButton, &QPushButton::released,
-            [this] { m_graph.clearAllData(); });
+            [this] { m_graph.ClearAllData(); });
     connect(m_ui.screenshotButton, SIGNAL(released()), &m_graph,
-            SLOT(screenshotGraph()));
-    connect(m_ui.saveButton, SIGNAL(released()), &m_graph, SLOT(saveAsCSV()));
+            SLOT(ScreenshotGraph()));
+    connect(m_ui.saveButton, SIGNAL(released()), &m_graph, SLOT(SaveAsCSV()));
 
     QCustomPlot& customPlot = *m_ui.plot;
 
@@ -67,14 +67,14 @@ MainWindow::MainWindow(QWidget* parent)
     m_lastTime = std::chrono::steady_clock::now();
 }
 
-void MainWindow::reconnect() {
-    if (m_graph.isConnected()) {
+void MainWindow::Reconnect() {
+    if (m_graph.IsConnected()) {
         m_ui.connectButton->setText("Connect");
-        m_graph.disconnect();
+        m_graph.Disconnect();
     } else {
-        m_graph.reconnect();
+        m_graph.Reconnect();
 
-        if (m_graph.isConnected()) {
+        if (m_graph.IsConnected()) {
             m_ui.connectButton->setText("Disconnect");
 
             m_isPlaying = true;
@@ -83,7 +83,7 @@ void MainWindow::reconnect() {
     }
 }
 
-void MainWindow::realtimeDataSlot(int graphId, float x, float y) {
+void MainWindow::AddData(int graphId, float x, float y) {
     QCustomPlot& plot = *m_ui.plot;
 
     // Don't draw anything if there are no graphs

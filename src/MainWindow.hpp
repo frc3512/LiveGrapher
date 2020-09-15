@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2020 FRC Team 3512. All Rights Reserved.
 
 #pragma once
 
@@ -16,8 +16,7 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
 
 private slots:
-    void reconnect();
-    void realtimeDataSlot(int graphId, float x, float y);
+    void Reconnect();
 
 private:
     Ui::MainWindow m_ui;
@@ -30,6 +29,8 @@ private:
 
     // Used to limit rate of recalculation of graph range
     std::chrono::steady_clock::time_point m_lastTime;
+
+    void AddData(int graphId, float x, float y);
 
     friend class Graph;
 };

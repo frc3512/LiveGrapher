@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2020 FRC Team 3512. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,7 @@
 #include <map>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -38,42 +39,66 @@ public:
     explicit Graph(MainWindow* parentWindow);
     virtual ~Graph() = default;
 
-    // Kills receiving thread and restarts it; this function will block
-    void reconnect();
+    /**
+     * Kills receiving thread and restarts it.
+     *
+     * This function will block.
+     */
+    void Reconnect();
 
-    // Kills receiving thread
-    void disconnect();
+    /**
+     * Kills receiving thread.
+     */
+    void Disconnect();
 
-    // Returns whether client is connected to graph host
-    bool isConnected() const;
+    /**
+     * Returns true if a client is connected.
+     */
+    bool IsConnected() const;
 
-    // Add data point to graph at given index (push back)
-    void addData(uint32_t index, const std::pair<float, float>&& point);
+    /**
+     * Append data point to the graph located at the given index.
+     */
+    void AddData(uint32_t index, const std::pair<float, float>&& point);
 
-    // Removes all previous data from all graphs
-    void clearAllData();
+    /**
+     * Removes all previous data from all graphs.
+     */
+    void ClearAllData();
 
-    // Create another set of data to graph
-    void createGraph(const std::string& name, QColor color);
+    /**
+     * Create another set of data to graph.
+     *
+     * @param name Name of new dataset.
+     * @param color Color of dataset's graph line.
+     */
+    void CreateGraph(const std::string& name, QColor color);
 
-    // Remove graph at the given index
-    void removeGraph(uint32_t index);
+    /**
+     * Remove graph at the given index.
+     *
+     * @param index The index of the graph to remove.
+     */
+    void RemoveGraph(uint32_t index);
 
 public slots:
-    // Saves a screenshot of the current graph window in PNG format
-    bool screenshotGraph();
-
-    /* Saves all graph data to CSV in the executable's directory. Returns true
-     * upon success.
+    /**
+     * Saves a screenshot of the current graph window in PNG format.
+     *
+     * @return True on success.
      */
-    bool saveAsCSV();
+    bool ScreenshotGraph();
 
-signals:
-    void realtimeDataSignal(int graphId, float x, float y);
+    /**
+     * Saves all graph data to CSV in the executable's directory.
+     *
+     * @return True on success.
+     */
+    bool SaveAsCSV();
 
 private slots:
-    void handleSocketData();
-    void sendGraphChoices();
+    void HandleSocketData();
+    void SendGraphChoices();
 
 private:
     MainWindow& m_window;
@@ -82,7 +107,7 @@ private:
 
     // Contains graph data to plot
     using DataSet = std::vector<std::pair<float, float>>;
-    std::vector<DataSet> m_dataSets;
+    std::vector<DataSet> m_datasets;
 
     // Contains names for all graphs available on host
     std::map<uint8_t, std::string> m_graphNames;
@@ -92,8 +117,9 @@ private:
 
     QTcpSocket m_dataSocket{this};
 
-    QHostAddress m_remoteIP;
-    uint16_t m_dataPort;
+    QHostAddress m_remoteIP{QHostAddress(
+        QString::fromUtf8(m_settings.getString("robotIP").c_str()))};
+    uint16_t m_dataPort = m_settings.getInt("robotGraphPort");
 
     uint64_t m_startTime = 0;
 
@@ -102,21 +128,48 @@ private:
     ClientListPacket m_clientListPacket;
     ReceiveState m_state = ReceiveState::ID;
 
-    /* Sends block of data to host. Returns 'true' on success or 'false' on
-     * failure
+    /**
+     * Sends block of data to host.
+     *
+     * @param buf Buffer containing data to send.
+     * @return True on success.
      */
-    bool sendData(void* data, size_t length);
+    bool SendData(std::string_view buf);
 
-    /* Receives block of data from host. This will block if not enough data is
-     * available to read.
+    /**
+     * Receives block of data from host.
+     *
+     * This will block if not enough data is available to read.
+     *
+     * @param data   Buffer in which to store received data.
+     * @param length Length of buffer.
      */
-    bool recvData(void* data, size_t length);
+    bool RecvData(void* data, size_t length);
 
-    static constexpr uint8_t extractPacketID(uint8_t id);
-    static constexpr uint8_t extractGraphID(uint8_t id);
+    /**
+     * Extract the packet type from the ID field of a received client packet.
+     *
+     * @param id The client packet ID field.
+     */
+    static constexpr uint8_t PacketType(uint8_t id) {
+        // Masks two high-order bits
+        return id & 0xC0;
+    }
 
-    // Generates unique name for a file based on the current time
-    std::string generateFileName();
+    /**
+     * Extract the graph ID from a host connect or disconnect packet's ID field.
+     *
+     * @param id The client packet ID field.
+     */
+    static constexpr uint8_t GraphID(uint8_t id) {
+        // Masks six low-order bits
+        return id & 0x2F;
+    }
+
+    /**
+     * Generates unique name for a file based on the current time.
+     */
+    std::string GenerateFileName();
 
     friend class SelectDialog;
 };

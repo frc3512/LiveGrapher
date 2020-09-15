@@ -26,7 +26,7 @@ constexpr QRgb HSVtoRGB(float h, float s, float v) {
 
     float modTemp = hPrime - static_cast<int>(hPrime);
     float x =
-        chroma * (1.f - std::fabs(static_cast<int>(hPrime) % 2 + modTemp - 1));
+        chroma * (1.f - std::abs(static_cast<int>(hPrime) % 2 + modTemp - 1));
 
     if (0 <= hPrime && hPrime < 1) {
         r = chroma;
@@ -65,57 +65,18 @@ constexpr QRgb HSVtoRGB(float h, float s, float v) {
     return qRgb(r * 255, g * 255, b * 255);
 }
 
-bool Graph::sendData(void* data, size_t length) {
-    uint64_t count = 0;
-    int64_t sent = 0;
-
-    while (count < length) {
-        sent = m_dataSocket.write(reinterpret_cast<char*>(data) + count,
-                                  length - count);
-        if (m_dataSocket.state() != QAbstractSocket::ConnectedState ||
-            sent < 0) {
-            return false;
-        } else {
-            count += sent;
-        }
-    }
-
-    return true;
-}
-
-bool Graph::recvData(void* data, size_t length) {
-    uint64_t count = 0;
-    int64_t received = 0;
-
-    while (count < length) {
-        received =
-            m_dataSocket.read(reinterpret_cast<char*>(data), length - count);
-        if (m_dataSocket.state() != QAbstractSocket::ConnectedState ||
-            received < 0) {
-            return false;
-        } else {
-            count += received;
-        }
-    }
-
-    return true;
-}
-
 Graph::Graph(MainWindow* parentWindow)
     : QObject(parentWindow), m_window(*parentWindow) {
-    m_dataSets.reserve(64);
-    m_remoteIP = QHostAddress(
-        QString::fromUtf8(m_settings.getString("robotIP").c_str()));
-    m_dataPort = m_settings.getInt("robotGraphPort");
+    m_datasets.reserve(64);
 
-    connect(&m_dataSocket, SIGNAL(readyRead()), this, SLOT(handleSocketData()));
+    connect(&m_dataSocket, SIGNAL(readyRead()), this, SLOT(HandleSocketData()));
 }
 
-void Graph::reconnect() {
-    // Reset list of data set recv statuses
+void Graph::Reconnect() {
+    // Reset list of dataset recv statuses
     m_curSelect = 0;
 
-    // Attempt connection to remote data set host
+    // Attempt connection to remote dataset host
     if (m_dataSocket.state() != QAbstractSocket::ConnectedState) {
         m_dataSocket.connectToHost(m_remoteIP, m_dataPort);
 
@@ -127,12 +88,13 @@ void Graph::reconnect() {
         }
     }
 
-    // Request list of all data sets on remote host
+    // Request list of all datasets on remote host
 
     // Populate outbound list packet
     m_hostPacket.ID = k_hostListPacket;
 
-    if (!sendData(&m_hostPacket.ID, sizeof(m_hostPacket.ID))) {
+    if (!SendData({reinterpret_cast<char*>(&m_hostPacket.ID),
+                   sizeof(m_hostPacket.ID)})) {
         QMessageBox::critical(
             &m_window, QObject::tr("Connection Error"),
             QObject::tr("Asking remote host for graph list failed"));
@@ -142,19 +104,19 @@ void Graph::reconnect() {
     }
 }
 
-void Graph::disconnect() { m_dataSocket.disconnectFromHost(); }
+void Graph::Disconnect() { m_dataSocket.disconnectFromHost(); }
 
-bool Graph::isConnected() const {
+bool Graph::IsConnected() const {
     return m_dataSocket.state() == QAbstractSocket::ConnectedState;
 }
 
-void Graph::addData(uint32_t index, const std::pair<float, float>&& data) {
-    m_dataSets[index].push_back(data);
-    m_window.realtimeDataSlot(index, data.first, data.second);
+void Graph::AddData(uint32_t index, const std::pair<float, float>&& data) {
+    m_datasets[index].push_back(data);
+    m_window.AddData(index, data.first, data.second);
 }
 
-void Graph::clearAllData() {
-    for (auto set : m_dataSets) {
+void Graph::ClearAllData() {
+    for (auto set : m_datasets) {
         set.clear();
     }
 
@@ -163,13 +125,13 @@ void Graph::clearAllData() {
     }
 }
 
-void Graph::createGraph(const std::string& name, QColor color) {
+void Graph::CreateGraph(const std::string& name, QColor color) {
     if (name.length() > 255) {
-        std::cout << "LiveGrapher: Graph::createGraph(): "
-                  << "name exceeds 255 characters" << std::endl;
+        std::cerr << "LiveGrapher: Graph::CreateGraph(): "
+                  << "name exceeds 255 characters\n";
         return;
     }
-    m_dataSets.emplace_back();
+    m_datasets.emplace_back();
 
     QCustomPlot* customPlot = m_window.m_ui.plot;
     customPlot->addGraph();
@@ -181,23 +143,23 @@ void Graph::createGraph(const std::string& name, QColor color) {
     customPlot->graph()->setPen(pen);
 }
 
-void Graph::removeGraph(uint32_t index) {
-    // Remove data set
-    m_dataSets.erase(m_dataSets.begin() + index);
+void Graph::RemoveGraph(uint32_t index) {
+    // Remove dataset
+    m_datasets.erase(m_datasets.begin() + index);
 
     m_window.m_ui.plot->removeGraph(index);
     m_window.m_ui.plot->legend->removeItem(index);
 }
 
-bool Graph::screenshotGraph() {
+bool Graph::ScreenshotGraph() {
     // There isn't any point in creating a file with no data in it
-    if (m_dataSets.size() == 0) {
+    if (m_datasets.size() == 0) {
         QMessageBox::critical(&m_window, QObject::tr("Save Data"),
                               QObject::tr("No graphs exist"));
         return false;
     } else {
         bool success = m_window.m_ui.plot->savePng(
-            QString::fromStdString("./" + generateFileName() + ".png"));
+            QString::fromStdString("./" + GenerateFileName() + ".png"));
 
         if (success) {
             QMessageBox::information(&m_window, QObject::tr("Save Data"),
@@ -211,89 +173,75 @@ bool Graph::screenshotGraph() {
     }
 }
 
-bool Graph::saveAsCSV() {
+bool Graph::SaveAsCSV() {
     // There isn't any point in creating a file with no data in it
-    if (m_dataSets.size() == 0) {
+    if (m_datasets.size() == 0) {
         QMessageBox::critical(&m_window, QObject::tr("Save Data"),
                               QObject::tr("No graphs exist"));
         return false;
     }
 
-    std::ofstream saveFile(generateFileName() + ".csv", std::ios_base::trunc);
+    std::ofstream saveFile(GenerateFileName() + ".csv", std::ofstream::trunc);
 
-    if (saveFile.is_open()) {
-        // Tracks positions in each data set; start at 0 for each
-        std::vector<size_t> sets(m_dataSets.size(), 0);
-
-        size_t setsOpen = m_dataSets.size();
-
-        // Write axis and data labels to file
-        for (size_t j = 0; j < m_dataSets.size(); j++) {
-            if (j == 0) {
-                // X axis label
-                saveFile << "Time (s)"
-                         << ",";
-            }
-            saveFile << m_graphNames[j];
-
-            // If last Y axis label hasn't been written yet
-            if (j + 1 < m_dataSets.size()) {
-                saveFile << ",";
-            } else {
-                saveFile << "\n";
-            }
-        }
-
-        // While there is still data in at least one data set to add to the file
-        while (setsOpen > 0) {
-            setsOpen = m_dataSets.size();
-
-            for (size_t j = 0; j < m_dataSets.size(); j++) {
-                // If there are still points in this data set to add
-                if (sets[j] != m_dataSets[j].size()) {
-                    /* Only write X values of first data set since X values of
-                     * all data sets are identical.
-                     */
-                    if (j == 0) {
-                        saveFile << m_dataSets[j][sets[j]].first << ",";
-                    }
-                    saveFile << m_dataSets[j][sets[j]].second;
-
-                    // Increment to next point in data set
-                    sets[j]++;
-                } else {
-                    // Data set has reached invalid point after incrementing
-
-                    // Add a filler comma
-                    saveFile << ",";
-
-                    setsOpen--;
-                }
-
-                // Only add another comma if there is more data to add
-                if (j < m_dataSets.size() - 1) {
-                    saveFile << ",";
-                }
-            }
-
-            if (setsOpen > 0) {
-                saveFile << '\n';
-            }
-        }
-
-        saveFile.close();
-
-        QMessageBox::information(&m_window, QObject::tr("Save Data"),
-                                 QObject::tr("Export to CSV successful"));
-        return true;
-    } else {
+    if (!saveFile.is_open()) {
         QMessageBox::critical(&m_window, QObject::tr("Save Data"),
                               QObject::tr("Open CSV file failed"));
         return false;
     }
+
+    // Tracks positions in each dataset; start at 0 for each
+    std::vector<size_t> rowIdx{m_datasets.size(), 0};
+
+    // X axis label
+    saveFile << "Time (s),";
+
+    // Write axis and data labels to file
+    for (size_t i = 0; i < m_datasets.size(); ++i) {
+        saveFile << m_graphNames[i];
+
+        // If last Y axis label hasn't been written yet
+        if (i + 1 < m_datasets.size()) {
+            saveFile << ',';
+        }
+    }
+    saveFile << '\n';
+
+    // While there is still data in at least one dataset to add to the file
+    size_t row = 0;
+    bool haveData = true;
+    while (haveData) {
+        haveData = false;
+
+        // Only write X values of first dataset since X values of all
+        // datasets are identical
+        saveFile << m_datasets[0][row].first << ',';
+
+        for (size_t col = 0; col < m_datasets.size(); ++col) {
+            // If there are still points in this dataset to add
+            if (row < m_datasets[col].size()) {
+                saveFile << m_datasets[col][row].second;
+                haveData = true;
+            }
+
+            // Only add another comma if there is more data to add
+            if (col < m_datasets.size() - 1) {
+                saveFile << ',';
+            }
+        }
+
+        saveFile << '\n';
+
+        ++row;
+    }
+
+    saveFile.close();
+
+    QMessageBox::information(&m_window, QObject::tr("Save Data"),
+                             QObject::tr("Export to CSV successful"));
+    return true;
 }
 
-void Graph::handleSocketData() {
+void Graph::HandleSocketData() {
     bool recvSuccess = true;
     bool continueReceive = true;
 
@@ -301,10 +249,10 @@ void Graph::handleSocketData() {
         if (m_state == ReceiveState::ID) {
             if (m_dataSocket.bytesAvailable() >= 1) {
                 char id;
-                recvSuccess = recvData(&id, 1);
+                recvSuccess = RecvData(&id, 1);
                 if (recvSuccess) {
                     // Check packet type
-                    switch (extractPacketID(id)) {
+                    switch (PacketType(id)) {
                         case k_clientDataPacket:
                             m_clientDataPacket.ID = id;
                             m_state = ReceiveState::Data;
@@ -321,11 +269,11 @@ void Graph::handleSocketData() {
         } else if (m_state == ReceiveState::Data) {
             if (static_cast<quint64>(m_dataSocket.bytesAvailable()) >=
                 sizeof(m_clientDataPacket.x) + sizeof(m_clientDataPacket.y)) {
-                recvSuccess = recvData(&m_clientDataPacket.x,
+                recvSuccess = RecvData(&m_clientDataPacket.x,
                                        sizeof(m_clientDataPacket.x));
 
                 if (recvSuccess) {
-                    recvSuccess = recvData(&m_clientDataPacket.y,
+                    recvSuccess = RecvData(&m_clientDataPacket.y,
                                            sizeof(m_clientDataPacket.y));
                     if (recvSuccess) {
                         m_state = ReceiveState::DataComplete;
@@ -336,7 +284,7 @@ void Graph::handleSocketData() {
             }
         } else if (m_state == ReceiveState::NameLength) {
             if (m_dataSocket.bytesAvailable() >= 1) {
-                recvSuccess = recvData(&m_clientListPacket.length,
+                recvSuccess = RecvData(&m_clientListPacket.length,
                                        sizeof(m_clientListPacket.length));
                 if (recvSuccess) {
                     m_clientListPacket.name.resize(m_clientListPacket.length);
@@ -347,7 +295,7 @@ void Graph::handleSocketData() {
             }
         } else if (m_state == ReceiveState::Name) {
             if (m_dataSocket.bytesAvailable() >= m_clientListPacket.length) {
-                recvSuccess = recvData(&m_clientListPacket.name[0],
+                recvSuccess = RecvData(&m_clientListPacket.name[0],
                                        m_clientListPacket.length);
                 if (recvSuccess) {
                     m_state = ReceiveState::EndOfFile;
@@ -357,7 +305,7 @@ void Graph::handleSocketData() {
             }
         } else if (m_state == ReceiveState::EndOfFile) {
             if (m_dataSocket.bytesAvailable() >= 1) {
-                recvSuccess = recvData(&m_clientListPacket.eof, 1);
+                recvSuccess = RecvData(&m_clientListPacket.eof, 1);
                 if (recvSuccess) {
                     m_state = ReceiveState::ListComplete;
                 }
@@ -391,26 +339,24 @@ void Graph::handleSocketData() {
                 m_startTime = m_clientDataPacket.x;
             }
 
-            /* Add data to appropriate data set; store point in temps because
-             * references can't be made of packed (unaligned) struct variables
-             */
+            // Add data to appropriate dataset; store point in temps because
+            // references can't be made of packed (unaligned) struct variables
             uint64_t x = m_clientDataPacket.x - m_startTime;
             float y = m_clientDataPacket.y;
-            addData(extractGraphID(m_clientDataPacket.ID),
-                    std::make_pair(x / 1000.f, y));
+            AddData(GraphID(m_clientDataPacket.ID), std::pair{x / 1000.f, y});
             /* ========================================= */
 
             m_state = ReceiveState::ID;
         } else if (m_state == ReceiveState::ListComplete) {
-            m_graphNames[extractGraphID(m_clientListPacket.ID)] =
+            m_graphNames[GraphID(m_clientListPacket.ID)] =
                 m_clientListPacket.name;
 
             // If that was the last name, exit the recv loop
             if (m_clientListPacket.eof == 1) {
-                // Allow user to select which data sets to receive
+                // Allow user to select which datasets to receive
                 auto dialog = new SelectDialog(m_graphNames, this, &m_window);
                 connect(dialog, SIGNAL(finished(int)), this,
-                        SLOT(sendGraphChoices()));
+                        SLOT(SendGraphChoices()));
                 dialog->open();
             }
 
@@ -428,7 +374,7 @@ void Graph::handleSocketData() {
     }
 }
 
-void Graph::sendGraphChoices() {
+void Graph::SendGraphChoices() {
     // If true, graphs aren't created yet
     bool makeGraphs = m_window.m_ui.plot->graphCount() == 0;
 
@@ -444,7 +390,8 @@ void Graph::sendGraphChoices() {
             m_hostPacket.ID = k_hostDisconnectPacket | i;
         }
 
-        if (!sendData(&m_hostPacket, sizeof(m_hostPacket))) {
+        if (!SendData({reinterpret_cast<char*>(&m_hostPacket),
+                       sizeof(m_hostPacket)})) {
             QMessageBox::critical(
                 &m_window, QObject::tr("Connection Error"),
                 QObject::tr("Sending graph choices to remote host failed"));
@@ -452,35 +399,60 @@ void Graph::sendGraphChoices() {
             m_startTime = 0;
         }
 
-        /* Create a graph for each data set requested.
+        /* Create a graph for each dataset requested.
+         *
          * V starts out at 1. H cycles through 12 colors (roughly the rainbow).
          * When it wraps around 360 degrees, V is decremented by 0.5. S is
          * always 1. This algorithm gives 25 possible values, one being black.
          */
         if (makeGraphs) {
             constexpr uint32_t parts = 12;
-            createGraph(m_graphNames[i],
+            CreateGraph(m_graphNames[i],
                         HSVtoRGB(360 / parts * i % 360, 1,
                                  1 - 0.5 * std::floor(i / parts)));
         }
     }
 }
 
-constexpr uint8_t Graph::extractPacketID(uint8_t id) {
-    // Masks two high-order bits
-    return id & 0xC0;
+bool Graph::SendData(std::string_view buf) {
+    uint64_t count = 0;
+
+    while (count < buf.length()) {
+        int64_t sent =
+            m_dataSocket.write(buf.data() + count, buf.length() - count);
+        if (m_dataSocket.state() != QAbstractSocket::ConnectedState ||
+            sent < 0) {
+            return false;
+        } else {
+            count += sent;
+        }
+    }
+
+    return true;
 }
 
-constexpr uint8_t Graph::extractGraphID(uint8_t id) {
-    // Masks six low-order bits
-    return id & 0x2F;
+bool Graph::RecvData(void* data, size_t length) {
+    uint64_t count = 0;
+    int64_t received = 0;
+
+    while (count < length) {
+        received =
+            m_dataSocket.read(reinterpret_cast<char*>(data), length - count);
+        if (m_dataSocket.state() != QAbstractSocket::ConnectedState ||
+            received < 0) {
+            return false;
+        } else {
+            count += received;
+        }
+    }
+
+    return true;
 }
 
-std::string Graph::generateFileName() {
-    typedef std::chrono::duration<
+std::string Graph::GenerateFileName() {
+    using days = std::chrono::duration<
         int,
-        std::ratio_multiply<std::chrono::hours::period, std::ratio<24>>::type>
-        days;
+        std::ratio_multiply<std::chrono::hours::period, std::ratio<24>>::type>;
     auto tp = std::chrono::system_clock::now().time_since_epoch();
     auto d = std::chrono::duration_cast<days>(tp);
     tp -= d;
