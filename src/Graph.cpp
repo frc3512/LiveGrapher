@@ -68,8 +68,6 @@ constexpr QRgb HSVtoRGB(float h, float s, float v) {
 
 Graph::Graph(MainWindow* parentWindow)
     : QObject(parentWindow), m_window(*parentWindow) {
-    m_datasets.reserve(64);
-
     connect(&m_dataSocket, SIGNAL(readyRead()), this, SLOT(HandleSocketData()));
 }
 
@@ -111,14 +109,15 @@ bool Graph::IsConnected() const {
     return m_dataSocket.state() == QAbstractSocket::ConnectedState;
 }
 
-void Graph::AddData(uint32_t index, const std::pair<float, float>&& data) {
-    m_window.AddData(index, data.first, data.second);
-    m_datasets[index].push_back(data);
+void Graph::AddData(uint32_t index, float x, float y) {
+    auto& dataset = m_datasets[index];
+    dataset.emplace_hint(dataset.end(), x, y);
+    m_window.AddData(index, x, y);
 }
 
 void Graph::ClearAllData() {
-    for (auto& set : m_datasets) {
-        set.clear();
+    for (auto& dataset : m_datasets) {
+        dataset.clear();
     }
 
     for (int i = 0; i < m_window.m_ui.plot->graphCount(); i++) {
@@ -362,7 +361,7 @@ void Graph::HandleSocketData() {
             // references can't be made of packed (unaligned) struct variables
             uint64_t x = m_clientDataPacket.x - m_startTime;
             float y = m_clientDataPacket.y;
-            AddData(GraphID(m_clientDataPacket.ID), std::pair{x / 1000.f, y});
+            AddData(GraphID(m_clientDataPacket.ID), x / 1000.f, y);
             /* ========================================= */
 
             m_state = ReceiveState::ID;

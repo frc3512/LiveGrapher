@@ -8,7 +8,6 @@
 #include <mutex>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include <QColor>
@@ -58,8 +57,12 @@ public:
 
     /**
      * Append data point to the graph located at the given index.
+     *
+     * @param index The index of the dataset.
+     * @param x     The x value.
+     * @param y     The y value.
      */
-    void AddData(uint32_t index, const std::pair<float, float>&& point);
+    void AddData(uint32_t index, float x, float y);
 
     /**
      * Removes all previous data from all graphs.
@@ -106,8 +109,7 @@ private:
     Settings m_settings{"IPSettings.txt"};
 
     // Contains graph data to plot
-    using DataSet = std::vector<std::pair<float, float>>;
-    std::vector<DataSet> m_datasets;
+    std::vector<std::map<float, float>> m_datasets;
 
     // Contains names for all graphs available on host
     std::map<uint8_t, std::string> m_graphNames;
