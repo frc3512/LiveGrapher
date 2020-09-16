@@ -159,7 +159,7 @@ bool Graph::ScreenshotGraph() {
         return false;
     } else {
         bool success = m_window.m_ui.plot->savePng(
-            QString::fromStdString("./" + GenerateFilename() + ".png"));
+            QString::fromStdString(GenerateFilename() + ".png"));
 
         if (success) {
             QMessageBox::information(&m_window, QObject::tr("Save Data"),
