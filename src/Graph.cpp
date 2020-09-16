@@ -120,7 +120,7 @@ void Graph::ClearAllData() {
         dataset.clear();
     }
 
-    for (int i = 0; i < m_window.m_ui.plot->graphCount(); i++) {
+    for (int i = 0; i < m_window.m_ui.plot->graphCount(); ++i) {
         m_window.m_ui.plot->graph(i)->clearData();
     }
 }
