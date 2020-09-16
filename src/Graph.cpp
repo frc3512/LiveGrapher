@@ -7,6 +7,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <optional>
 
 #include <QMessageBox>
 #include <QtEndian>
@@ -174,74 +175,68 @@ bool Graph::ScreenshotGraph() {
 }
 
 bool Graph::SaveAsCSV() {
+    // Make list of datasets that have data in them to export
+    std::vector<size_t> plottedIdxs;
+    for (size_t i = 0; i < m_datasets.size(); ++i) {
+        if (m_datasets[i].size() > 0) {
+            plottedIdxs.emplace_back(i);
+        }
+    }
+
     // There isn't any point in creating a file with no data in it
-    if (m_datasets.size() == 0) {
+    if (plottedIdxs.size() == 0) {
         QMessageBox::critical(&m_window, QObject::tr("Save Data"),
                               QObject::tr("No graphs exist"));
         return false;
     }
 
-    std::ofstream saveFile(GenerateFilename() + ".csv", std::ofstream::trunc);
+    std::ofstream saveFile{GenerateFilename() + ".csv", std::ofstream::trunc};
 
     if (!saveFile.is_open()) {
         QMessageBox::critical(&m_window, QObject::tr("Save Data"),
-                              QObject::tr("Open CSV file failed"));
+                              QObject::tr("Failed to open CSV file"));
         return false;
     }
 
-    // Tracks positions in each dataset; start at 0 for each
-    std::vector<size_t> rowIdx{m_datasets.size(), 0};
-
-    // X axis label
-    saveFile << "Time (s),";
-
-    // Write axis and data labels to file
-    for (size_t i = 0; i < m_datasets.size(); ++i) {
-        saveFile << m_graphNames[i];
-
-        // If last Y axis label hasn't been written yet
-        if (i + 1 < m_datasets.size()) {
-            saveFile << ',';
-        }
+    // Write X axis label, then data labels
+    saveFile << "Time (s)";
+    for (size_t idx : plottedIdxs) {
+        saveFile << ',' << m_graphNames[idx];
     }
     saveFile << '\n';
 
-    // Find first non-empty dataset. This will dataset's time values will be
-    // used for the first column.
-    size_t firstDataset = 0;
-    while (m_datasets[firstDataset].size() == 0) {
-        ++firstDataset;
-    }
+    // Collate all data in a format easier written to CSV. This converts a list
+    // of datasets with x-y pairs into a list of x values which each have a list
+    // of associated y values (one entry for each dataset that has an entry for
+    // that x value).
+    std::map<float, std::vector<std::optional<float>>> csvData;
+    for (size_t i = 0; i < plottedIdxs.size(); ++i) {
+        for (const auto& [time, value] : m_datasets[plottedIdxs[i]]) {
+            auto& values = csvData[time];
 
-    // While there is still data in at least one dataset to add to the file
-    size_t row = 0;
-    bool haveData = true;
-    while (haveData) {
-        haveData = false;
-
-        // Only write X values of first dataset since X values of all
-        // datasets are identical.
-        saveFile << m_datasets[firstDataset][row].first << ',';
-
-        for (size_t col = 0; col < m_datasets.size(); ++col) {
-            // If there are still points in this dataset to add
-            if (row < m_datasets[col].size()) {
-                saveFile << m_datasets[col][row].second;
-                haveData = true;
+            // If the list of values was just created because the time entry is
+            // new, make room for all pending columns
+            while (plottedIdxs.size() > values.size()) {
+                values.emplace_back();
             }
 
-            // Only add another comma if there is more data to add
-            if (col < m_datasets.size() - 1) {
-                saveFile << ',';
+            // Place value at approriate spot in list of values. An optional is
+            // used so that empty cells are retained when generating the CSV.
+            values[i] = std::optional{value};
+        }
+    }
+
+    // Write out CSV data
+    for (const auto& [time, values] : csvData) {
+        saveFile << time;
+        for (const auto& value : values) {
+            saveFile << ',';
+            if (value.has_value()) {
+                saveFile << value.value();
             }
         }
-
         saveFile << '\n';
-
-        ++row;
     }
-
-    saveFile.close();
 
     QMessageBox::information(&m_window, QObject::tr("Save Data"),
                              QObject::tr("Export to CSV successful"));
