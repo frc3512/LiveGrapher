@@ -97,7 +97,7 @@ void Graph::Reconnect() {
         QMessageBox::critical(
             &m_window, QObject::tr("Connection Error"),
             QObject::tr("Asking remote host for graph list failed"));
-        m_dataSocket.disconnect();
+        m_dataSocket.disconnectFromHost();
         m_startTime = 0;
         return;
     }
@@ -247,7 +247,7 @@ void Graph::HandleSocketData() {
         QMessageBox::critical(
             &m_window, QObject::tr("Connection Error"),
             QObject::tr("Receiving data from remote host failed"));
-        m_dataSocket.disconnect();
+        m_dataSocket.disconnectFromHost();
         m_startTime = 0;
         m_state = ReceiveState::ID;
     };
@@ -421,7 +421,7 @@ void Graph::SendGraphChoices() {
             QMessageBox::critical(
                 &m_window, QObject::tr("Connection Error"),
                 QObject::tr("Sending graph choices to remote host failed"));
-            m_dataSocket.disconnect();
+            m_dataSocket.disconnectFromHost();
             m_startTime = 0;
         }
     }
