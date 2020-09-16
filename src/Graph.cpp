@@ -111,12 +111,12 @@ bool Graph::IsConnected() const {
 }
 
 void Graph::AddData(uint32_t index, const std::pair<float, float>&& data) {
-    m_datasets[index].push_back(data);
     m_window.AddData(index, data.first, data.second);
+    m_datasets[index].push_back(data);
 }
 
 void Graph::ClearAllData() {
-    for (auto set : m_datasets) {
+    for (auto& set : m_datasets) {
         set.clear();
     }
 
