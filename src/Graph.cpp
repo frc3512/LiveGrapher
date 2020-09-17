@@ -136,7 +136,7 @@ void Graph::CreateGraph(const std::string& name, QColor color) {
 
     QCustomPlot* customPlot = m_window.plot;
     customPlot->addGraph();
-    customPlot->graph()->setName(QString::fromUtf8(name.c_str()));
+    customPlot->graph()->setName(QString::fromStdString(name));
     customPlot->graph()->setAntialiasedFill(false);
     customPlot->setNoAntialiasingOnDrag(true);
 
