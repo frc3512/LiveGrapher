@@ -111,5 +111,4 @@ One response of this packet type is sent for each available data set after sendi
 * Features
   * Vertical sync on graph
 * Hardware accelerate QCustomPlot
-* Restore checkbox state when reopening graph selection dialog during data streaming (only send data request upon checkbox change?)
 * Data tab: allow saving subset of data in window to CSV

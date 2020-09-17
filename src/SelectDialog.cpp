@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2013-2020 FRC Team 3512. All Rights Reserved.
 
 #include "SelectDialog.hpp"
 
@@ -7,9 +7,9 @@
 
 #include "Graph.hpp"
 
-SelectDialog::SelectDialog(std::map<uint8_t, std::string>& graphNames,
-                           Graph* graphData, QWidget* parent)
-    : QDialog(parent), m_graph(*graphData) {
+SelectDialog::SelectDialog(const std::map<uint8_t, std::string>& graphNames,
+                           Graph* graph, QWidget* parent)
+    : QDialog(parent), m_graph(*graph) {
     setGeometry(100, 100, 260, 260);
     connect(&m_okButton, SIGNAL(released()), this, SLOT(close()));
     connect(&m_signalMapper, SIGNAL(mapped(int)), this, SLOT(selectGraph(int)));
@@ -22,11 +22,20 @@ SelectDialog::SelectDialog(std::map<uint8_t, std::string>& graphNames,
     m_scrollArea.setWidget(widget);
 
     auto checkList = new QVBoxLayout;
-    for (const auto& name : graphNames) {
-        auto checkBox = new QCheckBox(
-            QString::fromUtf8(name.second.c_str(), name.second.size()));
+    for (const auto& [id, name] : graphNames) {
+        auto checkBox = new QCheckBox(QString::fromStdString(name));
         connect(checkBox, SIGNAL(clicked()), &m_signalMapper, SLOT(map()));
-        m_signalMapper.setMapping(checkBox, name.first);
+        m_signalMapper.setMapping(checkBox, id);
+
+        // Set the initial checkbox state to the selection choice from the
+        // previous connection. The choices are all overrridden with unchecked
+        // if the list of graph names changed since the last connection.
+        if (m_graph.m_curSelect & (1 << id)) {
+            checkBox->setCheckState(Qt::Checked);
+        } else {
+            checkBox->setCheckState(Qt::Unchecked);
+        }
+
         checkList->addWidget(checkBox);
     }
     widget->setLayout(checkList);

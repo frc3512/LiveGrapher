@@ -74,9 +74,6 @@ void Graph::Reconnect() {
     // Clear the old list of graph names because a new set will be received
     m_graphNames.clear();
 
-    // Reset list of dataset recv statuses
-    m_curSelect = 0;
-
     // Attempt connection to remote dataset host
     if (m_dataSocket.state() != QAbstractSocket::ConnectedState) {
         std::cout << "Connecting to " << m_remoteIP.toString().toStdString()
@@ -383,6 +380,12 @@ void Graph::HandleSocketData() {
 
             // If that was the last name, exit the recv loop
             if (m_clientListPacket.eof == 1) {
+                // If list of graph names changed, clear the checkbox states.
+                // Otherwise, retain the old states for user convenience.
+                if (m_oldGraphNames != m_graphNames) {
+                    m_curSelect = 0;
+                }
+
                 // Allow user to select which datasets to receive
                 auto dialog = new SelectDialog(m_graphNames, this, &m_window);
                 connect(dialog, SIGNAL(finished(int)), this,
