@@ -105,18 +105,10 @@ One response of this packet type is sent for each available data set after sendi
 
 ## Issue backlog
 
-* Fix reconnection of same client instance to a server instance with different graphs crashing
-* Create mapping from string to array index
-  * Allows position in array to change so changing graphs on host doesn't break client
-  * Show only legend entries actually on graph
 * Protocol change from "uint64_t x" to "float x" to support 2D plots
   * Overload with just "float y" will still exist for time-based plots
 * Features
   * Vertical sync on graph
-  * Reconnect when graph options change to avoid crash or inconsistent graph data? (use hash of options)
-* Replace map/queue of points with wrapper class around vector?
 * Hardware accelerate QCustomPlot
 * Restore checkbox state when reopening graph selection dialog during data streaming (only send data request upon checkbox change?)
-* Connect shouldn't clear graphs whose names are the same
-* Hashing (UID) for graph names instead of ID to allow persistent reconnect for checkboxes and handle host changing available streams
 * Data tab: allow saving subset of data in window to CSV
