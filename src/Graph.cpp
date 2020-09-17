@@ -79,6 +79,8 @@ void Graph::Reconnect() {
 
     // Attempt connection to remote dataset host
     if (m_dataSocket.state() != QAbstractSocket::ConnectedState) {
+        std::cout << "Connecting to " << m_remoteIP.toString().toStdString()
+                  << ":" << m_dataPort << std::endl;
         m_dataSocket.connectToHost(m_remoteIP, m_dataPort);
 
         if (!m_dataSocket.waitForConnected(500)) {
