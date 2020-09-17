@@ -8,11 +8,15 @@ LiveGrapherTest
 !LiveGrapher/
 *.swp
 
-# Qt-generated files
-.qmake.stash
+# Cmake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# Qt generated files
 moc_*
+mocs_*
 ui_*
 qrc_*
 Makefile*
 !test/Makefile
-*.pro.user

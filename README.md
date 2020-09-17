@@ -7,10 +7,11 @@ LiveGrapher graphs data received over a network in real time (useful for tuning 
 If one is building on Windows, we recommend using the [MSYS2 compiler](https://msys2.github.io/). The following libraries are required as dependencies and should be installed using either your package manager of choice or MSYS2's pacman:
 
 * Qt 5
+* CMake
 
 ## Building LiveGrapher
 
-To build the project, first run `qmake dir` within a terminal from the desired build directory, where "dir" is the relative location of the LiveGrapher.pro file. This will generate three makefiles. If a debug build is desired, run `make -f Makefile.Debug`. The default behavior when simply running `make` is to perform a release build.
+To build the project, first run `cmake dir` within a terminal from the desired build directory, where "dir" is the relative location of the CMakeLists.txt file. If a release build is desired, append `-DCMAKE_BUILD_TYPE=Release` to the cmake call. Then run `make`.
 
 To cross-compile from Linux to Windows, install the MinGW-w64 toolchain (`mingw-w64-gcc` and a MinGW-w64 build of Qt 5 (`mingw-w64-qt5-base`), then run `publish-win32.sh` to build LiveGrapher and create a .zip of the application binary and necessary files.
 

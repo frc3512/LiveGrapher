@@ -7,7 +7,7 @@ DATE=`date +"%Y%m%d"`
 # Build project
 rm -rf build
 mkdir -p build && cd build
-$PREFIX-qmake-qt5 ..
+cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j$(nproc)
 cd ..
 

@@ -14,7 +14,6 @@
 
 #include "MainWindow.hpp"
 #include "SelectDialog.hpp"
-#include "ui_MainWindow.h"
 
 constexpr QRgb HSVtoRGB(float h, float s, float v) {
     float r = 0.f;
