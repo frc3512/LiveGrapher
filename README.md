@@ -106,9 +106,8 @@ One response of this packet type is sent for each available data set after sendi
 
 ## Issue backlog
 
+* Add CI pipeline that installs Qt 5 and builds LiveGrapher and the host test
+  * Write protocol and CSV export tests?
 * Protocol change from "uint64_t x" to "float x" to support 2D plots
   * Overload with just "float y" will still exist for time-based plots
-* Features
-  * Vertical sync on graph
-* Hardware accelerate QCustomPlot
-* Data tab: allow saving subset of data in window to CSV
+* Upgrade to qcustomplot 2?
