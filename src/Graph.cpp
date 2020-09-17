@@ -124,8 +124,8 @@ void Graph::ClearAllData() {
         dataset.clear();
     }
 
-    for (int i = 0; i < m_window.m_ui.plot->graphCount(); ++i) {
-        m_window.m_ui.plot->graph(i)->clearData();
+    for (int i = 0; i < m_window.plot->graphCount(); ++i) {
+        m_window.plot->graph(i)->clearData();
     }
 }
 
@@ -137,7 +137,7 @@ void Graph::CreateGraph(const std::string& name, QColor color) {
     }
     m_datasets.emplace_back();
 
-    QCustomPlot* customPlot = m_window.m_ui.plot;
+    QCustomPlot* customPlot = m_window.plot;
     customPlot->addGraph();
     customPlot->graph()->setName(QString::fromUtf8(name.c_str()));
     customPlot->graph()->setAntialiasedFill(false);
@@ -151,13 +151,13 @@ void Graph::RemoveGraph(uint32_t index) {
     // Remove dataset
     m_datasets.erase(m_datasets.begin() + index);
 
-    m_window.m_ui.plot->removeGraph(index);
-    m_window.m_ui.plot->legend->removeItem(index);
+    m_window.plot->removeGraph(index);
+    m_window.plot->legend->removeItem(index);
 }
 
 void Graph::RemoveAllGraphs() {
     // Clear all graphs and the local dataset storage it represents
-    m_window.m_ui.plot->clearGraphs();
+    m_window.plot->clearGraphs();
     m_datasets.clear();
 
     m_startTime = 0;
@@ -170,7 +170,7 @@ bool Graph::ScreenshotGraph() {
                               QObject::tr("No graphs exist"));
         return false;
     } else {
-        bool success = m_window.m_ui.plot->savePng(
+        bool success = m_window.plot->savePng(
             QString::fromStdString(GenerateFilename() + ".png"));
 
         if (success) {
@@ -407,7 +407,7 @@ void Graph::SendGraphChoices() {
     }
 
     // If true, graphs haven't been created yet
-    bool createGraphs = m_window.m_ui.plot->graphCount() == 0;
+    bool createGraphs = m_window.plot->graphCount() == 0;
 
     // Send updated status on streams to which to connect based on the bit array
     for (uint32_t i = 0; i < m_graphNames.size(); ++i) {
@@ -425,14 +425,14 @@ void Graph::SendGraphChoices() {
 
         // Remove all graphs from legend so the requested ones are properly
         // ordered after reconnects
-        m_window.m_ui.plot->graph(i)->removeFromLegend();
+        m_window.plot->graph(i)->removeFromLegend();
 
         // If the graph data is requested
         if (m_curSelect & (1 << i)) {
             m_hostPacket.ID = k_hostConnectPacket | i;
 
             // Add dataset back to legend
-            m_window.m_ui.plot->graph(i)->addToLegend();
+            m_window.plot->graph(i)->addToLegend();
         } else {
             // Tell server to stop sending stream
             m_hostPacket.ID = k_hostDisconnectPacket | i;
