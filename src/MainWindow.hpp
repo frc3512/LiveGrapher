@@ -21,10 +21,10 @@ private slots:
 private:
     Ui::MainWindow m_ui;
 
-    Graph m_graph;
+    Graph m_graph{this};
     bool m_isPlaying = false;
 
-    Settings m_settings;
+    Settings m_settings{"IPSettings.txt"};
     double m_xHistory;
 
     // Used to limit rate of recalculation of graph range

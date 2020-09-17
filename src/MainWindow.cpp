@@ -6,8 +6,7 @@
 
 using namespace std::chrono_literals;
 
-MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent), m_graph(this), m_settings("IPSettings.txt") {
+MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     m_ui.setupUi(this);
 
     m_ui.plot->setInteraction(QCP::iRangeDrag, true);
