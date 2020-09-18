@@ -81,9 +81,8 @@ void Graph::Reconnect() {
         m_dataSocket.connectToHost(m_remoteIP, m_dataPort);
 
         if (!m_dataSocket.waitForConnected(500)) {
-            QMessageBox::critical(
-                &m_window, QObject::tr("Connection Error"),
-                QObject::tr("Connection to remote host failed"));
+            QMessageBox::critical(&m_window, "Connection Error",
+                                  "Connection to remote host failed");
             return;
         }
     }
@@ -95,9 +94,8 @@ void Graph::Reconnect() {
 
     if (!SendData({reinterpret_cast<char*>(&m_hostPacket.ID),
                    sizeof(m_hostPacket.ID)})) {
-        QMessageBox::critical(
-            &m_window, QObject::tr("Connection Error"),
-            QObject::tr("Asking remote host for graph list failed"));
+        QMessageBox::critical(&m_window, "Connection Error",
+                              "Asking remote host for graph list failed");
         m_dataSocket.disconnectFromHost();
         m_startTime = 0;
         return;
@@ -163,20 +161,18 @@ void Graph::RemoveAllGraphs() {
 bool Graph::ScreenshotGraph() {
     // There isn't any point in creating a file with no data in it
     if (m_datasets.size() == 0) {
-        QMessageBox::critical(&m_window, QObject::tr("Save Data"),
-                              QObject::tr("No graphs exist"));
+        QMessageBox::critical(&m_window, "Save Data", "No graphs exist");
         return false;
     } else {
         bool success = m_window.plot->savePng(
             QString::fromStdString(GenerateFilename() + ".png"));
 
         if (success) {
-            QMessageBox::information(&m_window, QObject::tr("Save Data"),
-                                     QObject::tr("Screenshot successful"));
+            QMessageBox::information(&m_window, "Save Data",
+                                     "Screenshot successful");
             return true;
         } else {
-            QMessageBox::critical(&m_window, QObject::tr("Save Data"),
-                                  QObject::tr("Screenshot failed"));
+            QMessageBox::critical(&m_window, "Save Data", "Screenshot failed");
             return false;
         }
     }
@@ -193,16 +189,15 @@ bool Graph::SaveAsCSV() {
 
     // There isn't any point in creating a file with no data in it
     if (plottedIdxs.size() == 0) {
-        QMessageBox::critical(&m_window, QObject::tr("Save Data"),
-                              QObject::tr("No graphs exist"));
+        QMessageBox::critical(&m_window, "Save Data", "No graphs exist");
         return false;
     }
 
     std::ofstream saveFile{GenerateFilename() + ".csv", std::ofstream::trunc};
 
     if (!saveFile.is_open()) {
-        QMessageBox::critical(&m_window, QObject::tr("Save Data"),
-                              QObject::tr("Failed to open CSV file"));
+        QMessageBox::critical(&m_window, "Save Data",
+                              "Failed to open CSV file");
         return false;
     }
 
@@ -246,16 +241,15 @@ bool Graph::SaveAsCSV() {
         saveFile << '\n';
     }
 
-    QMessageBox::information(&m_window, QObject::tr("Save Data"),
-                             QObject::tr("Export to CSV successful"));
+    QMessageBox::information(&m_window, "Save Data",
+                             "Export to CSV successful");
     return true;
 }
 
 void Graph::HandleSocketData() {
     auto reportFailure = [&] {
-        QMessageBox::critical(
-            &m_window, QObject::tr("Connection Error"),
-            QObject::tr("Receiving data from remote host failed"));
+        QMessageBox::critical(&m_window, "Connection Error",
+                              "Receiving data from remote host failed");
         m_dataSocket.disconnectFromHost();
         m_startTime = 0;
         m_state = ReceiveState::ID;
@@ -444,8 +438,8 @@ void Graph::SendGraphChoices() {
         if (!SendData({reinterpret_cast<char*>(&m_hostPacket),
                        sizeof(m_hostPacket)})) {
             QMessageBox::critical(
-                &m_window, QObject::tr("Connection Error"),
-                QObject::tr("Sending graph choices to remote host failed"));
+                &m_window, "Connection Error",
+                "Sending graph choices to remote host failed");
             m_dataSocket.disconnectFromHost();
             m_startTime = 0;
         }
