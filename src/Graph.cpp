@@ -163,18 +163,18 @@ bool Graph::ScreenshotGraph() {
     if (m_datasets.size() == 0) {
         QMessageBox::critical(&m_window, "Save Data", "No graphs exist");
         return false;
-    } else {
-        bool success = m_window.plot->savePng(
-            QString::fromStdString(GenerateFilename() + ".png"));
+    }
 
-        if (success) {
-            QMessageBox::information(&m_window, "Save Data",
-                                     "Screenshot successful");
-            return true;
-        } else {
-            QMessageBox::critical(&m_window, "Save Data", "Screenshot failed");
-            return false;
-        }
+    bool success = m_window.plot->savePng(
+        QString::fromStdString(GenerateFilename() + ".png"));
+
+    if (success) {
+        QMessageBox::information(&m_window, "Save Data",
+                                 "Screenshot successful");
+        return true;
+    } else {
+        QMessageBox::critical(&m_window, "Save Data", "Screenshot failed");
+        return false;
     }
 }
 

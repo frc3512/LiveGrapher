@@ -132,15 +132,11 @@ void MainWindow::AddData(int graphId, float x, float y) {
     if (std::chrono::steady_clock::now() - m_lastTime > 250ms) {
         // Don't rescale X axis when paused
         if (m_isPlaying) {
-            for (int i = 0; i < plot->graphCount(); i++) {
-                // Rescale value (vertical) axis to fit the current data
-                if (i == 0) {
-                    // Shrink window to fit first plot
-                    plot->graph(i)->rescaleValueAxis(false);
-                } else {
-                    // Expand window to fit all subsequent plots
-                    plot->graph(i)->rescaleValueAxis(true);
-                }
+            for (int i = 0; i < plot->graphCount(); ++i) {
+                // Rescale value (vertical) axis to fit the current data. If
+                // it's the first plot, shrink the window to fit. Otherwise,
+                // expand the window to fit.
+                plot->graph(i)->rescaleValueAxis(i != 0);
             }
         }
 
