@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 
-#include <set>
 #include <vector>
 
 #include "livegrapher/TcpSocket.hpp"
@@ -15,7 +14,12 @@
 class ClientConnection {
 public:
     TcpSocket socket;
-    std::set<uint8_t> datasets;
+
+    // A bitfield representing the selection state of each graph ID. The LSB is
+    // the selection state of graph ID 0 and the MSB is the selection state of
+    // graph ID 63. Graph IDs are 6 bits wide, so there are 2^6 = 64 possible
+    // graph IDs.
+    uint64_t datasets = 0;
 
     /**
      * Constructs a client connection.
