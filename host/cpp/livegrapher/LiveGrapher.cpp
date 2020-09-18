@@ -48,13 +48,14 @@ void LiveGrapher::AddData(const std::string& dataset,
                   "float isn't 32 bits long");
 
     auto i = m_graphList.find(dataset);
+    uint8_t id = i->second;
 
     if (i == m_graphList.end()) {
         m_graphList.emplace(dataset, m_graphList.size());
     }
 
     ClientDataPacket packet;
-    packet.ID = kClientDataPacket | i->second;
+    packet.ID = kClientDataPacket | id;
 
     // Change to network byte order
     // Swap bytes in x, and copy into the payload struct
@@ -75,12 +76,10 @@ void LiveGrapher::AddData(const std::string& dataset,
 
         // Send the point to connected clients
         for (auto& conn : m_connList) {
-            for (const auto& datasetID : conn.datasets) {
-                if (datasetID == i->second) {
-                    conn.AddData(
-                        {reinterpret_cast<char*>(&packet), sizeof(packet)});
-                    restartSelect = true;
-                }
+            if (conn.datasets.find(id) != conn.datasets.end()) {
+                conn.AddData(
+                    {reinterpret_cast<char*>(&packet), sizeof(packet)});
+                restartSelect = true;
             }
         }
     }
@@ -165,16 +164,11 @@ int LiveGrapher::ReadPackets(ClientConnection& conn) {
     switch (PacketType(id)) {
         case kHostConnectPacket:
             // Start sending data for the graph specified by the ID
-            if (std::find(conn.datasets.begin(), conn.datasets.end(),
-                          GraphID(id)) == conn.datasets.end()) {
-                conn.datasets.push_back(GraphID(id));
-            }
+            conn.datasets.emplace(GraphID(id));
             break;
         case kHostDisconnectPacket:
             // Stop sending data for the graph specified by the ID
-            conn.datasets.erase(std::remove(conn.datasets.begin(),
-                                            conn.datasets.end(), GraphID(id)),
-                                conn.datasets.end());
+            conn.datasets.erase(GraphID(id));
             break;
         case kHostListPacket:
             // 255 is the max graph name length

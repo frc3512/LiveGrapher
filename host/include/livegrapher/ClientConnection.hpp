@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 
+#include <set>
 #include <vector>
 
 #include "livegrapher/TcpSocket.hpp"
@@ -14,7 +15,7 @@
 class ClientConnection {
 public:
     TcpSocket socket;
-    std::vector<uint8_t> datasets;
+    std::set<uint8_t> datasets;
 
     /**
      * Constructs a client connection.
