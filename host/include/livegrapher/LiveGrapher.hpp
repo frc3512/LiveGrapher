@@ -74,9 +74,8 @@ private:
     TcpListener m_listener;
     SocketSelector m_selector;
 
-    /* Sorted by graph name instead of ID because the user passes in a string.
-     * (They don't know the ID.) This makes graph ID lookups take O(log n).
-     */
+    // Sorted by graph name instead of ID because the user passes in a string.
+    // (They don't know the ID.) This makes graph ID lookups take O(log n).
     std::map<std::string, uint8_t> m_graphList;
 
     std::vector<ClientConnection> m_connList;

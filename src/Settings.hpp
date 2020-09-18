@@ -18,22 +18,33 @@ public:
      */
     void update();
 
-    /* Returns value associated with the given key
-     * Returns "NOT_FOUND" if there is no entry for that name-value pair
+    /**
+     * Returns value associated with the given key or "NOT_FOUND" if one doesn't
+     * exist.
+     *
+     * @param key The key.
      */
     std::string getString(const std::string& key) const;
 
-    /* Returns value associated with the given key
-     * Returns 0 if there is no entry for that name-value pair
+    /**
+     * Returns value associated with the given key or 0 if one doesn't exist.
+     *
+     * @param key The key.
      */
     double getDouble(const std::string& key) const;
 
-    /* Returns value associated with the given key
-     * Returns 0 if there is no entry for that name-value pair
+    /**
+     * Returns value associated with the given key or 0 if one doesn't exist.
+     *
+     * @param key The key.
      */
     int getInt(const std::string& key) const;
 
-    // Saves all name-value pairs to external file with the given name
+    /**
+     * Saves all name-value pairs to a file with the given name.
+     *
+     * @param filename Name of the file.
+     */
     void saveToFile(std::string_view filename);
 
 private:

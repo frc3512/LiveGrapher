@@ -6,9 +6,8 @@
 
 #include <string>
 
-/* LiveGrapher wire protocol. See README.md in the root directory of this
- * project for protocol documentation.
- */
+// LiveGrapher wire protocol. See README.md in the root directory of this
+// project for protocol documentation.
 
 struct [[gnu::packed]] HostPacket {
     uint8_t ID;

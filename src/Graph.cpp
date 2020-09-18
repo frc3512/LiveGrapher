@@ -334,7 +334,8 @@ void Graph::HandleSocketData() {
 
             m_state = ReceiveState::ListComplete;
         } else if (m_state == ReceiveState::DataComplete) {
-            /* ===== Add sent point to local graph ===== */
+            // Add sent point to local graph
+
             // This will only work if ints are the same size as floats
             static_assert(sizeof(float) == sizeof(uint32_t),
                           "float isn't 32 bits long");
@@ -365,7 +366,6 @@ void Graph::HandleSocketData() {
             uint64_t x = m_clientDataPacket.x - m_startTime;
             float y = m_clientDataPacket.y;
             AddData(GraphID(m_clientDataPacket.ID), x / 1000.f, y);
-            /* ========================================= */
 
             m_state = ReceiveState::ID;
         } else if (m_state == ReceiveState::ListComplete) {
