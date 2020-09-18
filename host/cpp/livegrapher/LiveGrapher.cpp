@@ -146,9 +146,10 @@ void LiveGrapher::ThreadMain() {
         }
 
         if (m_selector.IsReadReady(m_listener)) {
-            std::scoped_lock lock(m_connListMutex);
             auto socket = m_listener.Accept();
             m_selector.Add(socket, SocketSelector::kRead);
+
+            std::scoped_lock lock(m_connListMutex);
             m_connList.emplace_back(std::move(socket));
         }
     }
