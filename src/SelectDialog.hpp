@@ -8,9 +8,6 @@
 #include <string>
 
 #include <QDialog>
-#include <QPushButton>
-#include <QScrollArea>
-#include <QSignalMapper>
 
 class Graph;
 
@@ -22,11 +19,8 @@ public:
                  QWidget* parent = nullptr);
 
 private slots:
-    void selectGraph(int val);
+    void toggleGraphSelect(int i);
 
 private:
     Graph& m_graph;
-    QPushButton m_okButton{QObject::tr("&Ok")};
-    QScrollArea m_scrollArea{this};
-    QSignalMapper m_signalMapper{this};
 };

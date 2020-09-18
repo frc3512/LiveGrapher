@@ -36,7 +36,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(plot->yAxis, SIGNAL(rangeChanged(QCPRange)), plot->yAxis2,
             SLOT(setRange(QCPRange)));
 
-    auto buttonLayout = new QHBoxLayout();
+    auto buttonLayout = new QHBoxLayout;
 
     // Pauses graphing so user can inspect it (disables auto-scrolling but data
     // is still appended to any graphs)
