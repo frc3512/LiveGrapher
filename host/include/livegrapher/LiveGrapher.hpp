@@ -81,9 +81,6 @@ private:
 
     std::vector<ClientConnection> m_connList;
 
-    // Temporary buffer used in ReadPackets()
-    std::string m_buf;
-
     /**
      * Extract the packet type from the ID field of a received client packet.
      *

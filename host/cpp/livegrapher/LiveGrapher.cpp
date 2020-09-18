@@ -176,33 +176,30 @@ int LiveGrapher::ReadPackets(ClientConnection& conn) {
                                 conn.datasets.end());
             break;
         case kHostListPacket:
-            /* A graph count is compared against instead of the graph ID for
-             * terminating list traversal because the std::map is sorted by
-             * graph name instead of the ID. Since, the IDs are not necessarily
-             * in order, early traversal termination could occur.
-             */
-            size_t graphCount = 0;
-            for (auto& graph : m_graphList) {
-                if (m_buf.length() < 1 + 1 + graph.first.length() + 1) {
-                    m_buf.resize(1 + 1 + graph.first.length() + 1);
-                }
+            // 255 is the max graph name length
+            char buf[1 + 1 + 255 + 1];
 
-                m_buf[0] = kClientListPacket | graph.second;
-                m_buf[1] = graph.first.length();
-                std::strncpy(&m_buf[2], graph.first.c_str(),
-                             graph.first.length());
+            // A graph count is compared against instead of the graph ID for
+            // terminating list traversal because the std::map is sorted by
+            // graph name instead of the ID. Since, the IDs are not necessarily
+            // in order, early traversal termination could occur.
+            size_t graphCount = 0;
+            for (const auto& [graph, id] : m_graphList) {
+                buf[0] = kClientListPacket | id;
+                buf[1] = graph.length();
+                std::strncpy(&buf[2], graph.c_str(), graph.length());
 
                 // Is this the last element in the list?
                 if (graphCount + 1 == m_graphList.size()) {
-                    m_buf[2 + m_buf[1]] = 1;
+                    buf[2 + buf[1]] = 1;
                 } else {
-                    m_buf[2 + m_buf[1]] = 0;
+                    buf[2 + buf[1]] = 0;
                 }
 
                 // Send graph name. The data size is computed explicitly here
                 // because the buffer string's current length may be larger than
                 // that.
-                conn.AddData({m_buf.data(), 1 + 1 + graph.first.length() + 1});
+                conn.AddData({buf, 1 + 1 + graph.length() + 1});
 
                 graphCount++;
             }
