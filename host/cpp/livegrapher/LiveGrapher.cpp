@@ -103,7 +103,19 @@ void LiveGrapher::ThreadMain() {
             }
         }
 
-        if (!m_selector.Select()) {
+        try {
+            if (!m_selector.Select()) {
+                continue;
+            }
+        } catch (const std::system_error&) {
+            // If select() failed, one of the client socket descriptors is
+            // probably bad. We can't determine which, so we'll close all client
+            // connections. It's better than crashing the host.
+            for (const auto& conn : m_connList) {
+                m_selector.Remove(conn.socket, SocketSelector::kRead |
+                                                   SocketSelector::kWrite);
+            }
+            m_connList.clear();
             continue;
         }
 
