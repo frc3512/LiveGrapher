@@ -76,7 +76,7 @@ void LiveGrapher::AddData(const std::string& dataset,
 
         // Send the point to connected clients
         for (auto& conn : m_connList) {
-            if (conn.datasets & (1 << id)) {
+            if (conn.IsGraphSelected(id)) {
                 conn.AddData(
                     {reinterpret_cast<char*>(&packet), sizeof(packet)});
                 restartSelect = true;
@@ -164,11 +164,11 @@ int LiveGrapher::ReadPackets(ClientConnection& conn) {
     switch (PacketType(id)) {
         case kHostConnectPacket:
             // Start sending data for the graph specified by the ID
-            conn.datasets |= 1 << GraphID(id);
+            conn.SelectGraph(GraphID(id));
             break;
         case kHostDisconnectPacket:
             // Stop sending data for the graph specified by the ID
-            conn.datasets &= ~(1 << GraphID(id));
+            conn.UnselectGraph(GraphID(id));
             break;
         case kHostListPacket:
             // 255 is the max graph name length

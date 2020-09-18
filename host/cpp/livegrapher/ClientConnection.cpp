@@ -6,6 +6,14 @@ ClientConnection::ClientConnection(TcpSocket&& socket) {
     this->socket = std::move(socket);
 }
 
+void ClientConnection::SelectGraph(uint8_t id) { m_datasets |= 1 << id; }
+
+void ClientConnection::UnselectGraph(uint8_t id) { m_datasets &= ~(1 << id); }
+
+bool ClientConnection::IsGraphSelected(uint8_t id) {
+    return m_datasets & (1 << id);
+}
+
 void ClientConnection::AddData(std::string_view data) {
     for (size_t i = 0; i < data.size(); ++i) {
         m_writeQueue.emplace_back(data[i]);

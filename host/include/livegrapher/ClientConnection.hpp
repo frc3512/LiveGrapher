@@ -15,12 +15,6 @@ class ClientConnection {
 public:
     TcpSocket socket;
 
-    // A bitfield representing the selection state of each graph ID. The LSB is
-    // the selection state of graph ID 0 and the MSB is the selection state of
-    // graph ID 63. Graph IDs are 6 bits wide, so there are 2^6 = 64 possible
-    // graph IDs.
-    uint64_t datasets = 0;
-
     /**
      * Constructs a client connection.
      *
@@ -30,6 +24,27 @@ public:
 
     ClientConnection(ClientConnection&&) = default;
     ClientConnection& operator=(ClientConnection&&) = default;
+
+    /**
+     * Select a graph so the data for it will be sent.
+     *
+     * @param id The ID of the graph to select.
+     */
+    void SelectGraph(uint8_t id);
+
+    /**
+     * Unselect a graph so the data for it will no longer be sent.
+     *
+     * @param id The ID of the graph to unselect.
+     */
+    void UnselectGraph(uint8_t id);
+
+    /**
+     * Returns true if the given graph is selected.
+     *
+     * @param id The ID of the graph.
+     */
+    bool IsGraphSelected(uint8_t id);
 
     /**
      * Add data to write queue.
@@ -53,4 +68,10 @@ public:
 
 private:
     std::vector<char> m_writeQueue;
+
+    // A bitfield representing the selection state of each graph ID. The LSB is
+    // the selection state of graph ID 0 and the MSB is the selection state of
+    // graph ID 63. Graph IDs are 6 bits wide, so there are 2^6 = 64 possible
+    // graph IDs.
+    uint64_t m_datasets = 0;
 };
