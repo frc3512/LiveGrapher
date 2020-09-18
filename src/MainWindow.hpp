@@ -24,7 +24,7 @@ private:
     bool m_isPlaying = false;
 
     Settings m_settings{"IPSettings.txt"};
-    double m_xHistory = m_settings.getDouble("xHistory");
+    double m_xHistory = m_settings.GetDouble("xHistory");
 
     // Used to limit rate of recalculation of graph range
     std::chrono::steady_clock::time_point m_lastTime =

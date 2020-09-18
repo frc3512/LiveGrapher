@@ -126,8 +126,8 @@ private:
     QTcpSocket m_dataSocket{this};
 
     QHostAddress m_remoteIP{
-        QHostAddress(QString::fromStdString(m_settings.getString("robotIP")))};
-    uint16_t m_dataPort = m_settings.getInt("robotGraphPort");
+        QHostAddress(QString::fromStdString(m_settings.GetString("robotIP")))};
+    uint16_t m_dataPort = m_settings.GetInt("robotGraphPort");
 
     uint64_t m_startTime = 0;
 

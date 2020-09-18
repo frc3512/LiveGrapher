@@ -7,10 +7,10 @@
 #include <regex>
 
 Settings::Settings(std::string_view filename) : m_filename(filename) {
-    update();
+    Update();
 }
 
-void Settings::update() {
+void Settings::Update() {
     m_values.clear();
 
     std::ifstream settings{m_filename};
@@ -29,7 +29,7 @@ void Settings::update() {
     }
 }
 
-std::string Settings::getString(const std::string& key) const {
+std::string Settings::GetString(const std::string& key) const {
     auto index = m_values.find(key);
 
     // If the element wasn't found
@@ -43,7 +43,7 @@ std::string Settings::getString(const std::string& key) const {
     return index->second;
 }
 
-double Settings::getDouble(const std::string& key) const {
+double Settings::GetDouble(const std::string& key) const {
     auto index = m_values.find(key);
 
     // If the element wasn't found
@@ -57,7 +57,7 @@ double Settings::getDouble(const std::string& key) const {
     return std::stof(index->second);
 }
 
-int Settings::getInt(const std::string& key) const {
+int Settings::GetInt(const std::string& key) const {
     auto index = m_values.find(key);
 
     // If the element wasn't found
@@ -71,7 +71,7 @@ int Settings::getInt(const std::string& key) const {
     return std::stoi(index->second);
 }
 
-void Settings::saveToFile(std::string_view filename) {
+void Settings::SaveToFile(std::string_view filename) {
     std::ofstream outFile(std::string{filename},
                           std::ostream::out | std::ostream::trunc);
 
