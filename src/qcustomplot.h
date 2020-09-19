@@ -1741,7 +1741,7 @@ public:
   QCPAxisTickerText();
   
   // getters:
-  QMap<double, QString> &ticks() { return mTicks; }
+  QMultiMap<double, QString> &ticks() { return mTicks; }
   int subTickCount() const { return mSubTickCount; }
   
   // setters:
@@ -1757,7 +1757,7 @@ public:
   
 protected:
   // property members:
-  QMap<double, QString> mTicks;
+  QMultiMap<double, QString> mTicks;
   int mSubTickCount;
   
   // reimplemented virtual methods:
