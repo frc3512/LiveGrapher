@@ -4,10 +4,30 @@ LiveGrapher graphs data received over a network in real time (useful for tuning 
 
 ## Dependencies
 
+### Windows
+
 If one is building on Windows, we recommend using the [MSYS2 compiler](https://msys2.github.io/). The following libraries are required as dependencies and should be installed using either your package manager of choice or MSYS2's pacman:
 
-* Qt 5
+* Qt 5.15 or higher
 * CMake
+
+### Ubuntu
+
+As of the time of writing, the latest version of Ubuntu (20.04)'s qt5-default package only provides Qt 5.12, which is is incompatible with LiveGrapher. We need to install a newer version of Qt ourselves.
+
+#### Building Qt
+
+This can be achieved by downloading the open source installer from [Qt's download page](https://www.qt.io/download) under "Downloads for open source users". Note: There are two methods for installing Qt. One is through the installer, which needs an account. Another is downloading the source package and building it yourself (doesn't require an account). If you wish to build the packages, you can visit the offline installer [download page](https://www.qt.io/offline-installers) here. Instructions on building it is avaliable [here](https://doc.qt.io/qt-5/linux-building.html) and the build requirements are avaliable [here](https://doc.qt.io/qt-5/linux-requirements.html) as well.
+
+#### Setting Qt's PATH
+
+Note: The same instructions here are similar to those on this [wiki page](https://doc.qt.io/qt-5/linux-building.html) mentioned earlier.
+
+For LiveGrapher to find your Qt package, we need to add it to the PATH environment variable. Append the following to `~/.profile`.
+
+```
+export PATH=$PATH:"Qt location including bin"
+```
 
 ## Building LiveGrapher
 
