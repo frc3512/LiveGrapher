@@ -425,7 +425,7 @@ void Graph::SendGraphChoices() {
         m_window.plot->graph(i)->removeFromLegend();
 
         // If the graph data is requested
-        if (m_curSelect & (1 << i)) {
+        if (m_curSelect & (1L << i)) {
             m_hostPacket.ID = k_hostConnectPacket | i;
 
             // Add dataset back to legend

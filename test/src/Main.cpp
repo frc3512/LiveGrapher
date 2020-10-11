@@ -63,6 +63,34 @@ int main() {
             liveGrapher.AddData("Test 4", 5.0);
             liveGrapher.AddData("TCurve SP 4", 20.0 - tSetpoint);
 
+            liveGrapher.AddData("SCurve SP 5", 20.0 - sSetpoint);
+            liveGrapher.AddData("Test 5", 6.0);
+            liveGrapher.AddData("TCurve SP 5", 20.0 - tSetpoint);
+
+            liveGrapher.AddData("SCurve SP 6", 20.0 - sSetpoint);
+            liveGrapher.AddData("Test 6", 7.0);
+            liveGrapher.AddData("TCurve SP 6", 20.0 - tSetpoint);
+
+            liveGrapher.AddData("SCurve SP 7", 20.0 - sSetpoint);
+            liveGrapher.AddData("Test 7", 8.0);
+            liveGrapher.AddData("TCurve SP 7", 20.0 - tSetpoint);
+
+            liveGrapher.AddData("SCurve SP 8", 20.0 - sSetpoint);
+            liveGrapher.AddData("Test 8", 9.0);
+            liveGrapher.AddData("TCurve SP 8", 20.0 - tSetpoint);
+
+            liveGrapher.AddData("SCurve SP 9", 20.0 - sSetpoint);
+            liveGrapher.AddData("Test 9", 10.0);
+            liveGrapher.AddData("TCurve SP 9", 20.0 - tSetpoint);
+
+            liveGrapher.AddData("SCurve SP 10", 20.0 - sSetpoint);
+            liveGrapher.AddData("Test 10", 11.0);
+            liveGrapher.AddData("TCurve SP 10", 20.0 - tSetpoint);
+
+            liveGrapher.AddData("SCurve SP 11", 20.0 - sSetpoint);
+            liveGrapher.AddData("Test 11", 12.0);
+            liveGrapher.AddData("TCurve SP 11", 20.0 - tSetpoint);  // 33
+
             lastTime = currentTime;
         }
 
