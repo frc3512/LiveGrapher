@@ -29,7 +29,7 @@ SelectDialog::SelectDialog(const std::map<uint8_t, std::string>& graphNames,
         // Set the initial checkbox state to the selection choice from the
         // previous connection. The choices are all overrridden with unchecked
         // if the list of graph names changed since the last connection.
-        if (m_graph.m_curSelect & (1 << id)) {
+        if (m_graph.m_curSelect & (1L << id)) {
             checkBox->setCheckState(Qt::Checked);
         } else {
             checkBox->setCheckState(Qt::Unchecked);
@@ -55,4 +55,4 @@ SelectDialog::SelectDialog(const std::map<uint8_t, std::string>& graphNames,
     setLayout(mainLayout);
 }
 
-void SelectDialog::toggleGraphSelect(int i) { m_graph.m_curSelect ^= 1 << i; }
+void SelectDialog::toggleGraphSelect(int i) { m_graph.m_curSelect ^= 1L << i; }
