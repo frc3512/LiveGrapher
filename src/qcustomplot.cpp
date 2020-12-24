@@ -25,6 +25,11 @@
 
 #include "qcustomplot.h"
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable : 4456)
+#pragma warning(disable : 4458)
+#endif
 
 /* including file 'src/vector2d.cpp', size 7340                              */
 /* commit ce344b3f96a62e5f652585e55f1ae7c7883cd45b 2018-06-25 01:03:39 +0200 */
@@ -30210,4 +30215,6 @@ QPen QCPItemBracket::mainPen() const
 }
 /* end of 'src/items/item-bracket.cpp' */
 
-
+#ifdef _WIN32
+#pragma warning(pop)
+#endif

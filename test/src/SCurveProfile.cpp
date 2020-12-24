@@ -1,4 +1,4 @@
-// Copyright (c) 2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2018-2020 FRC Team 3512. All Rights Reserved.
 
 #include "SCurveProfile.hpp"
 
@@ -10,7 +10,7 @@ SCurveProfile::SCurveProfile(double maxV, double maxA, double timeToMaxA) {
     setTimeToMaxA(timeToMaxA);
 }
 
-double SCurveProfile::updateSetpoint(double curTime, double curSource) {
+double SCurveProfile::updateSetpoint(double curTime) {
     std::lock_guard<decltype(m_varMutex)> lock(m_varMutex);
 
     double tmpSP = 0.0;

@@ -2,6 +2,8 @@
 
 #include "Graph.hpp"
 
+#include <fmt/chrono.h>
+
 #include <cmath>
 #include <cstring>
 #include <ctime>
@@ -15,6 +17,11 @@
 #include "MainWindow.hpp"
 #include "SelectDialog.hpp"
 
+template <typename T>
+constexpr T Abs(T arg) {
+    return arg > 0 ? arg : -arg;
+}
+
 constexpr QRgb HSVtoRGB(float h, float s, float v) {
     float r = 0.f;
     float g = 0.f;
@@ -25,8 +32,7 @@ constexpr QRgb HSVtoRGB(float h, float s, float v) {
     float m = v - chroma;
 
     float modTemp = hPrime - static_cast<int>(hPrime);
-    float x =
-        chroma * (1.f - std::abs(static_cast<int>(hPrime) % 2 + modTemp - 1));
+    float x = chroma * (1.f - Abs(static_cast<int>(hPrime) % 2 + modTemp - 1));
 
     if (0 <= hPrime && hPrime < 1) {
         r = chroma;
@@ -180,10 +186,10 @@ bool Graph::ScreenshotGraph() {
 
 bool Graph::SaveAsCSV() {
     // Make list of datasets that have data in them to export
-    std::vector<size_t> plottedIdxs;
+    std::vector<uint8_t> plottedIdxs;
     for (size_t i = 0; i < m_datasets.size(); ++i) {
         if (m_datasets[i].size() > 0) {
-            plottedIdxs.emplace_back(i);
+            plottedIdxs.emplace_back(static_cast<uint8_t>(i));
         }
     }
 
@@ -203,7 +209,7 @@ bool Graph::SaveAsCSV() {
 
     // Write X axis label, then data labels
     saveFile << "Time (s)";
-    for (size_t idx : plottedIdxs) {
+    for (const auto idx : plottedIdxs) {
         saveFile << ',' << m_graphNames[idx];
     }
     saveFile << '\n';
@@ -425,7 +431,7 @@ void Graph::SendGraphChoices() {
         m_window.plot->graph(i)->removeFromLegend();
 
         // If the graph data is requested
-        if (m_curSelect & (1L << i)) {
+        if (m_curSelect & (1LL << i)) {
             m_hostPacket.ID = k_hostConnectPacket | i;
 
             // Add dataset back to legend
@@ -484,10 +490,6 @@ bool Graph::RecvData(void* data, size_t length) {
 std::string Graph::GenerateFilename() {
     // Get the current date/time as a string. ISO 8601 format is roughly
     // YYYY-MM-DDTHH:mm:ss.
-    auto time = std::time(nullptr);
-    struct tm localTime = *std::localtime(&time);
-    char datetime[80];
-    std::strftime(datetime, sizeof(datetime), "%Y-%m-%dT%H_%M_%S", &localTime);
-
-    return std::string{"Graph-"} + datetime;
+    return fmt::format("Graph-{:%Y-%m-%dT%H_%M_%S}",
+                       fmt::localtime(std::time(nullptr)));
 }

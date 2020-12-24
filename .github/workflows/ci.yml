@@ -2,6 +2,10 @@ name: CI
 
 on: [push, pull_request]
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   format:
     runs-on: ubuntu-latest
@@ -34,7 +38,19 @@ jobs:
     - name: Verify wpiformat made no changes
       run: git --no-pager diff --exit-code HEAD
   build:
-    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux
+          - os: windows-latest
+            name: windows
+          - os: macos-latest
+            name: macos
+    name: "build-${{ matrix.name }}"
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v2
@@ -47,10 +63,12 @@ jobs:
     - name: Compile test host
       run: |
         cd test
-        make -j$(nproc)
+        mkdir -p build && cd build
+        cmake ..
+        cmake --build .
 
     - name: Compile client
       run: |
         mkdir -p build && cd build
         cmake ..
-        make -j$(nproc)
+        cmake --build .

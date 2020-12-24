@@ -1,4 +1,4 @@
-// Copyright (c) 2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2018-2020 FRC Team 3512. All Rights Reserved.
 
 #ifndef LIVEGRAPHER_TEST_SRC_PROFILEBASE_HPP_
 #define LIVEGRAPHER_TEST_SRC_PROFILEBASE_HPP_
@@ -12,7 +12,7 @@ public:
     ProfileBase();
     virtual ~ProfileBase();
 
-    virtual double updateSetpoint(double curTime, double curSource = 0.0) = 0;
+    virtual double updateSetpoint(double curTime) = 0;
 
     // Should return initial setpoint for start of profile
     virtual double setGoal(double t, double goal, double curSource) = 0;

@@ -13,6 +13,10 @@ generatedFileExclude {
   qcustomplot\.
 }
 
+modifiableFileExclude {
+  Win32PipeImpl\.
+}
+
 includeOtherLibs {
   ^wpi/
 }

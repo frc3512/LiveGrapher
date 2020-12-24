@@ -31,7 +31,7 @@ export PATH=$PATH:"Qt location including bin"
 
 ## Building LiveGrapher
 
-To build the project, first run `cmake dir` within a terminal from the desired build directory, where "dir" is the relative location of the CMakeLists.txt file. If a release build is desired, append `-DCMAKE_BUILD_TYPE=Release` to the cmake call. Then run `make`.
+To build the project, first run `cmake dir` within a terminal from the desired build directory, where "dir" is the relative location of the CMakeLists.txt file. If a release build is desired, append `-DCMAKE_BUILD_TYPE=Release` to the cmake call. Then run `cmake --build .`.
 
 To cross-compile from Linux to Windows, install the MinGW-w64 toolchain (`mingw-w64-gcc` and a MinGW-w64 build of Qt 5 (`mingw-w64-qt5-base`), then run `publish-win32.sh` to build LiveGrapher and create a .zip of the application binary and necessary files.
 

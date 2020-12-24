@@ -8,7 +8,7 @@ DATE=`date +"%Y%m%d"`
 rm -rf build
 mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
+cmake --build .
 cd ..
 
 # Create destination folder

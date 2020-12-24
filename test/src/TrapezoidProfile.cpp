@@ -1,4 +1,4 @@
-// Copyright (c) 2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2018-2020 FRC Team 3512. All Rights Reserved.
 
 #include "TrapezoidProfile.hpp"
 
@@ -11,7 +11,7 @@ TrapezoidProfile::TrapezoidProfile(double maxV, double timeToMaxV) {
 
 TrapezoidProfile::~TrapezoidProfile() {}
 
-double TrapezoidProfile::updateSetpoint(double curTime, double curSource) {
+double TrapezoidProfile::updateSetpoint(double curTime) {
     std::lock_guard<decltype(m_varMutex)> lock(m_varMutex);
 
     double tmpSP = 0.0;

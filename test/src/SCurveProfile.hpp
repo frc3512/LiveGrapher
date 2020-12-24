@@ -1,4 +1,4 @@
-// Copyright (c) 2018 FRC Team 3512. All Rights Reserved.
+// Copyright (c) 2018-2020 FRC Team 3512. All Rights Reserved.
 
 /* Implementation of trapezoid motion profile translated to C++; base Java code
  * courtesy of FRC Team 254
@@ -22,15 +22,13 @@ public:
 
     /* If distance:
      *     curSetpoint is current distance set to which to travel
-     *     curSource is current position (not used)
      *
      * If velocity:
      *     curSetpoint is current velocity at which to travel
-     *     curSource is current velocity (not used)
      *
      * curTime is current time
      */
-    virtual double updateSetpoint(double curTime, double curSource = 0.0);
+    virtual double updateSetpoint(double curTime);
 
     /* goal is a distance to which to travel
      * curSource is the current position
