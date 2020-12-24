@@ -8,7 +8,8 @@ set(CMAKE_AUTOUIC ON)
 
 find_package(Qt5 COMPONENTS Network Widgets PrintSupport REQUIRED)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 include_directories("${PROJECT_SOURCE_DIR}")
 file(GLOB SRCS
