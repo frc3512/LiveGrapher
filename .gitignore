@@ -1,12 +1,13 @@
 *.csv
 *.d
 *.dll
-*.o
 *.exe
+*.o
+*.swp
 LiveGrapher
 LiveGrapherTest
 !LiveGrapher/
-*.swp
+build/
 
 # Cmake generated files
 CMakeCache.txt
